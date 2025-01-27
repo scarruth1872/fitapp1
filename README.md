@@ -15,6 +15,19 @@ A modern, AI-powered counseling assistant that helps users connect with counseli
   - Accessibility features (tooltips, ARIA labels)
 - **User Authentication**: Secure login and signup system with password recovery
 - **Navigation**: Responsive navbar with mobile support
+- **Social Feed**: Share counseling journey updates and achievements
+- **Friend System**: Connect with other users
+  - Send and receive friend requests
+  - Search for users
+  - Manage friend connections
+- **Workout Sharing**: Share your counseling progress with custom privacy settings
+  - Public, friends-only, or private sharing options
+  - Like and comment on shared progress
+  - Save progress from other users
+- **Real-time Notifications**: Stay updated with social interactions
+  - Friend request notifications
+  - Likes and comments alerts
+  - Progress share notifications
 
 ## Technical Stack
 

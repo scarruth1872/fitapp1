@@ -14,19 +14,30 @@ import {
   useTheme,
   Tooltip,
   Zoom,
-  Button
+  Button,
+  Badge,
+  Card,
+  CardContent,
+  Chip,
+  Divider
 } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 import SendIcon from '@mui/icons-material/Send';
+import PersonIcon from '@mui/icons-material/Person';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import PsychologyIcon from '@mui/icons-material/Psychology';
 import { conversationAnalyzer } from '../utils/conversationAnalyzer';
 import counselorImage from '../assets/counselor-avatar.svg';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { counselingData } from '../data/counselingData';
 
-// Keyframe animations
+// Enhanced animations
 const pulseAnimation = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
 `;
 
 const typingAnimation = keyframes`
@@ -35,383 +46,668 @@ const typingAnimation = keyframes`
   44% { transform: translateY(0px); }
 `;
 
-const MessageContainer = styled(Paper, {
-  shouldForwardProp: prop => prop !== 'isUser'
-})(({ theme, isUser }) => ({
+const fadeInAnimation = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+    filter: blur(2px);
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0);
+    filter: blur(0);
+  }
+`;
+
+const slideInAnimation = keyframes`
+  from {
+    transform: translateX(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+`;
+
+// Enhanced styled components
+const MessageContainer = styled(Paper)(({ theme, isUser }) => ({
   padding: theme.spacing(2),
-  marginBottom: theme.spacing(2),
-  backgroundColor: isUser ? theme.palette.primary.light : theme.palette.background.paper,
-  color: isUser ? theme.palette.primary.contrastText : theme.palette.text.primary,
+  marginBottom: theme.spacing(1),
+  maxWidth: '100%',
   borderRadius: theme.spacing(2),
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  transition: 'all 0.3s ease',
-  maxWidth: '70%',
-  wordBreak: 'break-word',
+  backgroundColor: theme.palette.mode === 'dark' 
+    ? isUser ? 'rgba(0, 255, 0, 0.1)' : 'rgba(0, 0, 0, 0.6)'
+    : isUser ? theme.palette.primary.light : theme.palette.background.paper,
+  border: theme.palette.mode === 'dark' ? '1px solid rgba(0, 255, 0, 0.3)' : 'none',
+  boxShadow: theme.palette.mode === 'dark' 
+    ? 'none'
+    : '0 2px 4px rgba(0,0,0,0.1)',
+  color: theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.text.primary,
   position: 'relative',
-  '&:hover': {
-    transform: 'translateY(-1px)',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-  },
-  '&::before': {
+  '&::after': {
     content: '""',
     position: 'absolute',
-    width: '0',
-    height: '0',
-    borderStyle: 'solid',
-    ...(isUser ? {
-      borderWidth: '8px 0 8px 12px',
-      borderColor: `transparent transparent transparent ${theme.palette.primary.light}`,
-      right: '-12px',
-      top: '20px'
-    } : {
-      borderWidth: '8px 12px 8px 0',
-      borderColor: `transparent ${theme.palette.background.paper} transparent transparent`,
-      left: '-12px',
-      top: '20px'
-    })
+    width: '10px',
+    height: '10px',
+    transform: 'rotate(45deg)',
+    backgroundColor: 'inherit',
+    borderTop: theme.palette.mode === 'dark' ? '1px solid rgba(0, 255, 0, 0.3)' : 'none',
+    borderLeft: theme.palette.mode === 'dark' ? '1px solid rgba(0, 255, 0, 0.3)' : 'none',
+    top: '20px',
+    [isUser ? 'right' : 'left']: '-5px',
   },
-  '& pre': {
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-    padding: theme.spacing(1),
-    backgroundColor: theme.palette.background.default,
-    borderRadius: theme.spacing(1),
-    margin: theme.spacing(1, 0)
-  },
-  '& code': {
-    backgroundColor: theme.palette.background.default,
-    padding: theme.spacing(0.5),
-    borderRadius: theme.spacing(0.5)
-  },
-  '& ul, & ol': {
-    marginLeft: theme.spacing(2),
-    marginBottom: theme.spacing(1)
-  },
-  '& li': {
-    marginBottom: theme.spacing(0.5)
-  }
 }));
 
-const StyledAvatar = styled(Avatar, {
-  shouldForwardProp: prop => prop !== 'isUser' && prop !== 'isTyping'
-})(({ theme, isUser, isTyping }) => ({
-  backgroundColor: isUser ? theme.palette.secondary.main : theme.palette.primary.main,
-  marginRight: isUser ? 0 : theme.spacing(2),
-  marginLeft: isUser ? theme.spacing(2) : 0,
-  width: 40,
-  height: 40,
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-  border: `2px solid ${theme.palette.background.paper}`,
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  animation: isTyping ? `${pulseAnimation} 2s infinite` : 'none',
-  '&:hover': {
-    transform: 'scale(1.05)',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-  }
-}));
-
-const MessageWrapper = styled(Box, {
-  shouldForwardProp: prop => prop !== 'isUser'
-})(({ theme, isUser }) => ({
+const TypingIndicator = styled(Box)(({ theme }) => ({
   display: 'flex',
-  alignItems: 'flex-start',
-  justifyContent: isUser ? 'flex-end' : 'flex-start',
+  alignItems: 'center',
+  gap: theme.spacing(1),
+  padding: theme.spacing(2),
+  borderRadius: theme.spacing(2),
+  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.6)' : theme.palette.background.paper,
+  border: theme.palette.mode === 'dark' ? '1px solid rgba(0, 255, 0, 0.3)' : 'none',
+  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
+  width: 'fit-content',
   marginBottom: theme.spacing(2),
-  opacity: 0,
-  animation: 'fadeIn 0.5s ease forwards',
-  '@keyframes fadeIn': {
-    from: { opacity: 0, transform: 'translateY(10px)' },
-    to: { opacity: 1, transform: 'translateY(0)' }
-  }
+  animation: `${slideInAnimation} 0.3s ease-out`,
 }));
 
 const TypingDot = styled('span')(({ theme, delay }) => ({
-  width: 6,
-  height: 6,
-  backgroundColor: theme.palette.text.primary,
+  width: 8,
+  height: 8,
+  backgroundColor: theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.primary.main,
   borderRadius: '50%',
   display: 'inline-block',
-  margin: '0 2px',
   animation: `${typingAnimation} 1.4s infinite`,
-  animationDelay: `${delay}ms`
+  animationDelay: delay,
+  opacity: theme.palette.mode === 'dark' ? 0.7 : 1,
+}));
+
+const StyledTextField = styled(TextField)(({ theme }) => ({
+  '& .MuiOutlinedInput-root': {
+    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.6)' : theme.palette.background.paper,
+    borderRadius: theme.spacing(2),
+    transition: 'all 0.3s ease',
+    border: theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
+    color: theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+    '&.Mui-focused': {
+      boxShadow: theme.palette.mode === 'dark'
+        ? '0 0 0 2px rgba(0, 255, 0, 0.2)'
+        : '0 4px 8px rgba(0,0,0,0.1)',
+      transform: 'translateY(-1px)',
+    },
+    '& fieldset': {
+      borderColor: theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.primary.main,
+      borderWidth: '1px',
+    },
+    '&:hover fieldset': {
+      borderColor: theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.primary.main,
+    },
+    '& input': {
+      color: theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+    },
+    '& textarea': {
+      color: theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+    },
+  },
+  '& .MuiInputLabel-root': {
+    color: theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+  },
+}));
+
+const SuggestionChip = styled(Chip)(({ theme }) => ({
+  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.1)' : theme.palette.primary.light,
+  color: theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.primary.contrastText,
+  border: theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
+  '&:hover': {
+    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.2)' : theme.palette.primary.main,
+  },
+  margin: '4px',
 }));
 
 const InputContainer = styled(Box)(({ theme }) => ({
   position: 'sticky',
   bottom: 0,
-  backgroundColor: theme.palette.background.paper,
+  backgroundColor: theme.palette.background.default,
   padding: theme.spacing(2),
   borderTop: `1px solid ${theme.palette.divider}`,
-  display: 'flex',
-  gap: theme.spacing(1),
-  alignItems: 'flex-end',
-  boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
   zIndex: 1,
-  borderBottomLeftRadius: theme.shape.borderRadius,
-  borderBottomRightRadius: theme.shape.borderRadius,
-  transition: 'transform 0.3s ease',
-  transform: 'translateY(0)',
-  '&:focus-within': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 -4px 20px rgba(0,0,0,0.15)',
-  }
+  backdropFilter: 'blur(10px)',
 }));
 
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: theme.palette.background.paper,
-    borderRadius: theme.spacing(2),
-    transition: 'all 0.3s ease',
-    '&:hover': {
-      backgroundColor: theme.palette.action.hover
-    },
-    '&.Mui-focused': {
-      backgroundColor: theme.palette.background.paper,
-      boxShadow: `0 0 0 2px ${theme.palette.primary.main}`
-    }
-  }
-}));
-
-const StyledSendButton = styled(IconButton)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: theme.palette.primary.contrastText,
-  borderRadius: '50%',
-  padding: theme.spacing(1.5),
+const ServiceCard = styled(Card)(({ theme }) => ({
+  marginTop: theme.spacing(1),
+  marginBottom: theme.spacing(1),
+  borderRadius: theme.spacing(2),
+  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.6)' : theme.palette.background.paper,
+  border: theme.palette.mode === 'dark' ? '1px solid rgba(0, 255, 0, 0.3)' : 'none',
+  boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 8px rgba(0,0,0,0.1)',
   transition: 'all 0.3s ease',
-  '&:hover': {
-    backgroundColor: theme.palette.primary.dark,
-    transform: 'scale(1.05) rotate(10deg)'
+  animation: `${fadeInAnimation} 0.5s ease-out`,
+  '& .MuiTypography-root': {
+    color: theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
   },
-  '&.Mui-disabled': {
-    backgroundColor: theme.palette.action.disabledBackground,
-    color: theme.palette.action.disabled
-  }
+  '& .MuiChip-root': {
+    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.1)' : theme.palette.primary.light,
+    color: theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.primary.contrastText,
+    border: theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
+  },
+  '& .MuiButton-root': {
+    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.1)' : theme.palette.primary.main,
+    color: theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.primary.contrastText,
+    border: theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
+    '&:hover': {
+      backgroundColor: theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.2)' : theme.palette.primary.dark,
+    },
+  },
+  '&:hover': {
+    transform: theme.palette.mode === 'dark' ? 'none' : 'translateY(-2px)',
+    boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 4px 12px rgba(0,0,0,0.15)',
+  },
 }));
 
 const CounselingAgent = () => {
+  const [messages, setMessages] = useState([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState(null);
+  const [conversationHistory, setConversationHistory] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+  const messagesEndRef = useRef(null);
   const theme = useTheme();
   const navigate = useNavigate();
-  const [messages, setMessages] = useState([]);
-  const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [context, setContext] = useState(null);
-  const messagesEndRef = useRef(null);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
-    const initContext = async () => {
-      try {
-        const newContext = await conversationAnalyzer.createContext();
-        setContext(newContext);
-        // Add welcome message
-        setMessages([{
-          text: "Hello! I'm your counseling assistant. How can I help you today?",
-          sender: 'agent'
-        }]);
-      } catch (error) {
-        console.error('Error initializing context:', error);
-      }
+    // Initial greeting with suggested topics
+    const initialMessage = {
+      text: "Hello! I'm your counseling assistant. How can I help you today?",
+      isUser: false,
+      timestamp: new Date(),
     };
-    initContext();
+    setMessages([initialMessage]);
+    setConversationHistory([{ role: 'assistant', content: initialMessage.text }]);
+    setSuggestions([
+      'I need someone to talk to',
+      'Looking for counseling services',
+      'Want to schedule an appointment',
+      'Feeling anxious or stressed'
+    ]);
   }, []);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!inputText.trim() || !context) return;
-
-    const userMessage = inputText.trim();
-    setInputText('');
-    setIsTyping(true);
-
-    // Add user message immediately
-    setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
-
-    try {
-      // Get response from conversation analyzer
-      const response = await conversationAnalyzer.analyzeMessage(userMessage, context);
-      
-      // Add agent response after a small delay to simulate typing
-      setTimeout(() => {
-        setMessages(prev => [...prev, { text: response, sender: 'agent' }]);
-        setIsTyping(false);
-      }, 500 + Math.random() * 1000); // Random delay between 500-1500ms
-    } catch (error) {
-      console.error('Error getting response:', error);
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          text: "I apologize, but I encountered an issue. Please try again.",
-          sender: 'agent'
-        }]);
-        setIsTyping(false);
-      }, 500);
-    }
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+    setError(null);
   };
 
-  const handleSchedulingRequest = () => {
-    navigate('/schedule');
+  const handleSuggestionClick = (suggestion) => {
+    setInputValue(suggestion);
+    handleSubmit({ preventDefault: () => {} }, suggestion);
   };
 
-  const renderMessageText = (text) => {
-    if (text.includes('[Schedule Appointment]')) {
-      return (
-        <Box>
-          <Typography variant="body1" component="div" gutterBottom>
-            {text.replace('[Schedule Appointment]', '')}
-          </Typography>
+  const renderServiceCard = (service) => (
+    <ServiceCard>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          {service.name}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" paragraph>
+          {service.description}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 1 }}>
+          {service.modalities.map((modality) => (
+            <Chip
+              key={modality}
+              label={modality}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          ))}
+        </Box>
+        <Divider sx={{ my: 1 }} />
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button
             variant="contained"
             color="primary"
-            onClick={handleSchedulingRequest}
-            sx={{ mt: 1 }}
+            startIcon={<EventAvailableIcon />}
+            onClick={() => navigate('/schedule')}
           >
-            Schedule Appointment
+            Schedule
           </Button>
+          <Typography variant="caption" color="text.secondary">
+            {service.durations.join(', ')} min sessions
+          </Typography>
         </Box>
-      );
+      </CardContent>
+    </ServiceCard>
+  );
+
+  const handleSubmit = async (e, suggestionText = null) => {
+    e.preventDefault();
+    const messageText = suggestionText || inputValue;
+    if ((!messageText.trim() && !suggestionText) || isProcessing) return;
+
+    const userMessage = {
+      text: messageText.trim(),
+      isUser: true,
+      timestamp: new Date(),
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
+    setIsProcessing(true);
+    setIsTyping(true);
+    setSuggestions([]);
+
+    try {
+      const updatedHistory = [...conversationHistory, { role: 'user', content: userMessage.text }];
+      setConversationHistory(updatedHistory);
+
+      const response = await conversationAnalyzer.generateResponse(userMessage.text, updatedHistory);
+      
+      const agentMessage = {
+        text: response.message,
+        isUser: false,
+        timestamp: new Date(),
+        action: response.action,
+      };
+
+      setMessages(prev => [...prev, agentMessage]);
+      setConversationHistory(prev => [...prev, { role: 'assistant', content: response.message }]);
+
+      // Generate contextual suggestions based on the response
+      if (response.suggestedServices) {
+        const service = counselingData.services.find(s => s.name === response.suggestedServices[0]);
+        if (service) {
+          setSelectedService(service);
+        }
+      }
+
+      if (response.action === 'schedule') {
+        setTimeout(() => {
+          navigate('/schedule');
+        }, 1500);
+      }
+    } catch (err) {
+      setError('I apologize, but I encountered an error. Please try again.');
+      console.error('Error processing message:', err);
+    } finally {
+      setIsTyping(false);
+      setIsProcessing(false);
     }
-    if (!text) return null;
-    return text.split('\n').map((line, i) => (
-      <Typography 
-        key={i} 
-        component="p" 
-        sx={{ 
-          mb: 1,
-          '&:last-child': { mb: 0 },
-          lineHeight: 1.6
-        }}
-      >
-        {line || ' '}
-      </Typography>
-    ));
   };
 
   return (
-    <Container maxWidth="md" sx={{ 
-      mt: 4, 
-      mb: 4, 
-      height: '80vh', 
-      display: 'flex', 
-      flexDirection: 'column',
-      bgcolor: 'background.default',
-      borderRadius: 2,
-      boxShadow: 3,
-      overflow: 'hidden',
-      position: 'relative',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '4px',
-        background: theme => `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`
-      }
-    }}>
-      <Box sx={{ 
-        flexGrow: 1, 
-        overflow: 'auto', 
-        bgcolor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
-        p: 2,
-        backgroundImage: 'linear-gradient(45deg, rgba(0,0,0,0.02) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.02) 75%), linear-gradient(45deg, rgba(0,0,0,0.02) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.02) 75%)',
-        backgroundSize: '20px 20px',
-        backgroundPosition: '0 0, 10px 10px'
-      }}>
-        <List>
+    <Box 
+      sx={{ 
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: theme => theme.palette.mode === 'dark' ? '#000' : theme.palette.background.default,
+        color: theme => theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.text.primary,
+      }}
+    >
+      {/* Header Section */}
+      <Box
+        sx={{
+          p: 2,
+          borderBottom: 1,
+          borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.3)' : 'divider',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          mt: 4, // Add top margin to lower the content
+        }}
+      >
+        <Avatar
+          src={counselorImage}
+          alt="Counselor"
+          sx={{
+            width: 40,
+            height: 40,
+            border: theme => theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
+            boxShadow: theme => theme.palette.mode === 'dark' ? '0 0 10px rgba(0, 255, 0, 0.3)' : 'none',
+          }}
+        />
+        <Typography
+          variant="h6"
+          sx={{
+            color: theme => theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+            fontSize: { xs: '1rem', sm: '1.25rem' },
+            textShadow: theme => theme.palette.mode === 'dark' ? '0 0 10px rgba(0, 255, 0, 0.3)' : 'none',
+          }}
+        >
+          Counseling Assistant
+        </Typography>
+      </Box>
+
+      {/* Messages Section */}
+      <Box 
+        sx={{ 
+          flexGrow: 1, 
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          p: { xs: 2, sm: 3, md: 4 },
+          mt: 2, // Add top margin
+          '&::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: theme => theme.palette.mode === 'dark' ? '#00ff00' : theme.palette.primary.light,
+            borderRadius: '4px',
+            opacity: theme => theme.palette.mode === 'dark' ? 0.3 : 1,
+          },
+        }}
+      >
+        {/* Suggestions Section - Moved to top */}
+        {suggestions.length > 0 && !isProcessing && (
+          <Box 
+            sx={{ 
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1.5,
+              p: { xs: 2, sm: 3 },
+              justifyContent: 'center',
+              mb: 3,
+            }}
+          >
+            {suggestions.map((suggestion, index) => (
+              <SuggestionChip
+                key={index}
+                label={suggestion}
+                onClick={() => handleSuggestionClick(suggestion)}
+                size="medium"
+                sx={{ 
+                  fontSize: { xs: '0.875rem', sm: '1rem' },
+                  py: 2.5,
+                  px: 2,
+                  borderRadius: '20px',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    transform: 'scale(1.05)',
+                    boxShadow: theme => theme.palette.mode === 'dark' 
+                      ? '0 0 15px rgba(0, 255, 0, 0.3)'
+                      : '0 4px 12px rgba(0,0,0,0.15)',
+                  },
+                }}
+              />
+            ))}
+          </Box>
+        )}
+
+        <List sx={{ width: '100%', p: 0 }}>
           {messages.map((message, index) => (
-            <Fade in={true} key={index} timeout={500}>
-              <ListItem sx={{ p: 1 }}>
-                <MessageWrapper isUser={message.sender === 'user'}>
-                  {message.sender === 'agent' && (
-                    <Tooltip title="Counseling Assistant" arrow TransitionComponent={Zoom}>
-                      <StyledAvatar 
-                        isUser={false}
-                        src={counselorImage}
-                      >
-                        Ra
-                      </StyledAvatar>
-                    </Tooltip>
-                  )}
-                  <MessageContainer isUser={message.sender === 'user'}>
+            <ListItem
+              key={index}
+              sx={{
+                display: 'flex',
+                justifyContent: message.isUser ? 'flex-end' : 'flex-start',
+                alignItems: 'flex-start',
+                p: { xs: 1.5, sm: 2 },
+                gap: 2,
+              }}
+            >
+              <Box 
+                sx={{ 
+                  display: 'flex',
+                  flexDirection: message.isUser ? 'row-reverse' : 'row',
+                  alignItems: 'flex-start',
+                  gap: 1,
+                  maxWidth: '85%',
+                  width: 'auto',
+                }}
+              >
+                {/* Avatar */}
+                <Box sx={{ flexShrink: 0 }}>
+                  <Avatar
+                    src={message.isUser ? currentUser?.photoURL : counselorImage}
+                    sx={{
+                      width: { xs: 32, sm: 40 },
+                      height: { xs: 32, sm: 40 },
+                      border: theme => theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
+                    }}
+                  >
+                    {message.isUser && !currentUser?.photoURL && <PersonIcon />}
+                  </Avatar>
+                </Box>
+
+                {/* Message Content */}
+                <Box 
+                  sx={{ 
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 0.5,
+                    maxWidth: '100%',
+                  }}
+                >
+                  <MessageContainer 
+                    isUser={message.isUser} 
+                    elevation={1}
+                    sx={{
+                      p: { xs: 1.5, sm: 2 },
+                      minWidth: '120px',
+                      maxWidth: '100%',
+                    }}
+                  >
                     <Typography 
-                      variant="body1" 
-                      component="div"
                       sx={{ 
-                        '& p': { mb: 1 },
-                        '& p:last-child': { mb: 0 }
+                        fontSize: { xs: '0.9rem', sm: '1rem' },
+                        lineHeight: 1.6,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
                       }}
                     >
-                      {renderMessageText(message.text)}
+                      {message.text}
                     </Typography>
+
+                    {selectedService && !message.isUser && message.action === 'suggest_service' && (
+                      <Box sx={{ mt: 2 }}>
+                        <ServiceCard elevation={0}>
+                          <CardContent>
+                            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                              {selectedService.name}
+                            </Typography>
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                mb: 2,
+                                fontSize: { xs: '0.875rem', sm: '1rem' },
+                                lineHeight: 1.6,
+                              }}
+                            >
+                              {selectedService.description}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
+                              {selectedService.modalities.map((modality) => (
+                                <Chip
+                                  key={modality}
+                                  label={modality}
+                                  size="small"
+                                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                                />
+                              ))}
+                            </Box>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
+                              <Button
+                                variant="contained"
+                                size="small"
+                                startIcon={<EventAvailableIcon />}
+                                onClick={() => navigate('/schedule')}
+                                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                              >
+                                Schedule
+                              </Button>
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                                  opacity: 0.7,
+                                }}
+                              >
+                                {selectedService.durations.join(', ')} min sessions
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </ServiceCard>
+                      </Box>
+                    )}
                   </MessageContainer>
-                  {message.sender === 'user' && (
-                    <Tooltip title="You" arrow TransitionComponent={Zoom}>
-                      <StyledAvatar isUser={true}>You</StyledAvatar>
-                    </Tooltip>
-                  )}
-                </MessageWrapper>
-              </ListItem>
-            </Fade>
+
+                  {/* Timestamp */}
+                  <Typography 
+                    variant="caption" 
+                    sx={{ 
+                      fontSize: '0.75rem',
+                      opacity: 0.7,
+                      alignSelf: message.isUser ? 'flex-end' : 'flex-start',
+                      ml: message.isUser ? 0 : 1,
+                      mr: message.isUser ? 1 : 0,
+                    }}
+                  >
+                    {message.timestamp.toLocaleTimeString()}
+                  </Typography>
+                </Box>
+              </Box>
+            </ListItem>
           ))}
+
+          {/* Typing Indicator */}
           {isTyping && (
-            <Fade in={true}>
-              <ListItem sx={{ p: 1 }}>
-                <MessageWrapper isUser={false}>
-                  <Tooltip title="Counseling Assistant" arrow TransitionComponent={Zoom}>
-                    <StyledAvatar isUser={false} src={counselorImage} isTyping>Ra</StyledAvatar>
-                  </Tooltip>
-                  <MessageContainer isUser={false}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <TypingDot delay={0} />
-                      <TypingDot delay={200} />
-                      <TypingDot delay={400} />
-                    </Box>
-                  </MessageContainer>
-                </MessageWrapper>
-              </ListItem>
-            </Fade>
+            <ListItem sx={{ p: { xs: 0.5, sm: 1 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Avatar
+                  src={counselorImage}
+                  sx={{
+                    width: { xs: 32, sm: 40 },
+                    height: { xs: 32, sm: 40 },
+                    border: theme => theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
+                  }}
+                />
+                <TypingIndicator>
+                  <TypingDot delay="0s" />
+                  <TypingDot delay="0.2s" />
+                  <TypingDot delay="0.4s" />
+                </TypingIndicator>
+              </Box>
+            </ListItem>
           )}
-          <div ref={messagesEndRef} />
         </List>
+
+        <div ref={messagesEndRef} />
       </Box>
-      <InputContainer>
-        <StyledTextField
-          fullWidth
-          multiline
-          maxRows={4}
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Type your message..."
-          variant="outlined"
-          disabled={isTyping || !context}
-        />
-        <Tooltip title="Send message" arrow TransitionComponent={Zoom}>
-          <span>
-            <StyledSendButton 
-              onClick={handleSendMessage} 
-              disabled={isTyping || !inputText.trim() || !context}
-              aria-label="Send message"
-            >
-              <SendIcon />
-            </StyledSendButton>
-          </span>
-        </Tooltip>
-      </InputContainer>
-    </Container>
+
+      {/* Input Section */}
+      <Box 
+        sx={{ 
+          p: { xs: 2, sm: 3 },
+          borderTop: 1,
+          borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.3)' : 'divider',
+          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.8)' : theme.palette.background.paper,
+          mt: 'auto', // Push to bottom
+        }}
+      >
+        {error && (
+          <Typography 
+            color="error" 
+            sx={{ 
+              mb: 1,
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            }}
+          >
+            {error}
+          </Typography>
+        )}
+        
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <StyledTextField
+              fullWidth
+              placeholder="Type your message..."
+              value={inputValue}
+              onChange={handleInputChange}
+              disabled={isProcessing}
+              multiline
+              maxRows={4}
+              sx={{
+                '& .MuiInputBase-root': {
+                  fontSize: { xs: '1rem', sm: '1.1rem' },
+                  p: { xs: 1.5, sm: 2 },
+                  backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 0, 0, 0.6)' : 'inherit',
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.3)' : 'inherit',
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.5)' : 'inherit',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme => theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+                  boxShadow: theme => theme.palette.mode === 'dark' ? '0 0 10px rgba(0, 255, 0, 0.2)' : 'none',
+                },
+              }}
+              InputProps={{
+                endAdornment: (
+                  <IconButton
+                    color="primary"
+                    type="submit"
+                    disabled={!inputValue.trim() || isProcessing}
+                    sx={{
+                      p: 1,
+                      mr: 0.5,
+                      backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.1)' : 'inherit',
+                      border: theme => theme.palette.mode === 'dark' ? '1px solid rgba(0, 255, 0, 0.3)' : 'none',
+                      '&:hover': {
+                        backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.2)' : 'inherit',
+                        transform: 'scale(1.1)',
+                      },
+                      '&.Mui-disabled': {
+                        opacity: 0.5,
+                        backgroundColor: 'transparent',
+                      },
+                      transition: 'all 0.2s ease',
+                    }}
+                  >
+                    {isProcessing ? (
+                      <CircularProgress 
+                        size={24}
+                        sx={{
+                          color: theme => theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+                        }}
+                      />
+                    ) : (
+                      <SendIcon 
+                        sx={{ 
+                          fontSize: { xs: '1.5rem', sm: '1.75rem' },
+                          color: theme => theme.palette.mode === 'dark' ? '#00ff00' : 'inherit',
+                          transform: 'rotate(-45deg)',
+                        }} 
+                      />
+                    )}
+                  </IconButton>
+                ),
+              }}
+            />
+          </Box>
+        </form>
+      </Box>
+    </Box>
   );
 };
 
