@@ -1,0 +1,233 @@
+import { useState } from 'react';
+import {
+  Container,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+  Button,
+  Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  MenuItem,
+} from '@mui/material';
+import { motion } from 'framer-motion';
+
+const counselors = [
+  {
+    id: 1,
+    name: 'Dr. Sarah Johnson',
+    specialty: 'Mental Health & Wellness',
+    experience: '15+ years',
+    image: 'https://source.unsplash.com/random/400x400/?professional-woman',
+    bio: 'Dr. Johnson specializes in cognitive behavioral therapy and mindfulness-based stress reduction.',
+  },
+  {
+    id: 2,
+    name: 'Dr. Michael Chen',
+    specialty: 'Sports Psychology',
+    experience: '12+ years',
+    image: 'https://source.unsplash.com/random/400x400/?professional-man',
+    bio: 'Dr. Chen helps athletes and fitness enthusiasts optimize their mental performance and overcome barriers.',
+  },
+  {
+    id: 3,
+    name: 'Dr. Emily Rodriguez',
+    specialty: 'Nutrition Psychology',
+    experience: '10+ years',
+    image: 'https://source.unsplash.com/random/400x400/?counselor',
+    bio: 'Dr. Rodriguez specializes in helping clients develop healthy relationships with food and body image.',
+  },
+];
+
+const timeSlots = [
+  '9:00 AM',
+  '10:00 AM',
+  '11:00 AM',
+  '2:00 PM',
+  '3:00 PM',
+  '4:00 PM',
+];
+
+const Counseling = () => {
+  const [selectedCounselor, setSelectedCounselor] = useState(null);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [bookingData, setBookingData] = useState({
+    date: '',
+    time: '',
+    type: 'video',
+  });
+
+  const handleBooking = (counselor) => {
+    setSelectedCounselor(counselor);
+    setOpenDialog(true);
+  };
+
+  const handleClose = () => {
+    setOpenDialog(false);
+    setBookingData({
+      date: '',
+      time: '',
+      type: 'video',
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setBookingData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = () => {
+    // Handle booking submission
+    console.log('Booking submitted:', { counselor: selectedCounselor, ...bookingData });
+    handleClose();
+  };
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Typography
+          component="h1"
+          variant="h3"
+          align="center"
+          sx={{ mb: 4, color: 'primary.main' }}
+        >
+          Professional Counseling
+        </Typography>
+
+        <Typography
+          variant="h6"
+          align="center"
+          sx={{ mb: 6, color: 'primary.light' }}
+        >
+          Connect with experienced health and wellness counselors
+        </Typography>
+
+        <Grid container spacing={4}>
+          {counselors.map((counselor) => (
+            <Grid item key={counselor.id} xs={12} md={4}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  backgroundColor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'primary.main',
+                  '&:hover': {
+                    boxShadow: '0 0 20px #00ff00',
+                  },
+                }}
+              >
+                <CardMedia
+                  component="img"
+                  height="300"
+                  image={counselor.image}
+                  alt={counselor.name}
+                />
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Typography gutterBottom variant="h5" component="h2" color="primary">
+                    {counselor.name}
+                  </Typography>
+                  <Typography variant="subtitle1" color="primary.light" gutterBottom>
+                    {counselor.specialty}
+                  </Typography>
+                  <Typography variant="subtitle2" color="primary.light" gutterBottom>
+                    Experience: {counselor.experience}
+                  </Typography>
+                  <Typography color="text.secondary" paragraph>
+                    {counselor.bio}
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    onClick={() => handleBooking(counselor)}
+                    sx={{
+                      mt: 2,
+                      backgroundColor: 'primary.main',
+                      '&:hover': {
+                        backgroundColor: 'primary.dark',
+                      },
+                    }}
+                  >
+                    Book Session
+                  </Button>
+                </CardContent>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
+
+        <Dialog open={openDialog} onClose={handleClose} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ color: 'primary.main' }}>
+            Book a Session with {selectedCounselor?.name}
+          </DialogTitle>
+          <DialogContent>
+            <Box sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                label="Date"
+                type="date"
+                name="date"
+                value={bookingData.date}
+                onChange={handleInputChange}
+                InputLabelProps={{ shrink: true }}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Time"
+                name="time"
+                value={bookingData.time}
+                onChange={handleInputChange}
+                sx={{ mb: 2 }}
+              >
+                {timeSlots.map((slot) => (
+                  <MenuItem key={slot} value={slot}>
+                    {slot}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                fullWidth
+                select
+                label="Session Type"
+                name="type"
+                value={bookingData.type}
+                onChange={handleInputChange}
+              >
+                <MenuItem value="video">Video Call</MenuItem>
+                <MenuItem value="audio">Audio Call</MenuItem>
+                <MenuItem value="chat">Chat</MenuItem>
+              </TextField>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClose}>Cancel</Button>
+            <Button
+              onClick={handleSubmit}
+              variant="contained"
+              disabled={!bookingData.date || !bookingData.time}
+            >
+              Confirm Booking
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </motion.div>
+    </Container>
+  );
+};
+
+export default Counseling;
