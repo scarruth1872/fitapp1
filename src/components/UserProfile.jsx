@@ -24,9 +24,7 @@ import {
   Skeleton,
   Paper,
   useTheme,
-  CircularProgress,
-  AnimatePresence,
-  motion
+  CircularProgress
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -39,6 +37,7 @@ import {
   PersonAdd as PersonAddIcon,
   PersonRemove as PersonRemoveIcon
 } from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocial } from '../contexts/SocialContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';

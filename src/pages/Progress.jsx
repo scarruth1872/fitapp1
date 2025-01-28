@@ -18,6 +18,7 @@ import {
   Timer as TimerIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import ProgressDashboard from '../components/progress/ProgressDashboard';
 import ProgressCharts from '../components/ProgressCharts';
 import { useWorkout } from '../contexts/WorkoutContext';
 
@@ -159,31 +160,21 @@ const Progress = () => {
         ))}
       </Grid>
 
-      <Paper sx={{ mb: 4 }}>
+      <Box sx={{ width: '100%', mt: 3 }}>
         <Tabs
           value={selectedTab}
           onChange={handleTabChange}
-          textColor="primary"
-          indicatorColor="primary"
           centered
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
         >
-          <Tab label="Overview" />
-          <Tab label="Exercise Progress" />
-          <Tab label="Time Analysis" />
+          <Tab label="Dashboard" />
+          <Tab label="Detailed Analytics" />
         </Tabs>
-      </Paper>
+      </Box>
 
-      <MotionPaper
-        elevation={3}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Box p={3}>
-          <ProgressCharts selectedTab={selectedTab} />
-        </Box>
-      </MotionPaper>
+      <Box sx={{ mt: 3 }}>
+        {selectedTab === 0 && <ProgressDashboard />}
+        {selectedTab === 1 && <ProgressCharts workouts={workouts} />}
+      </Box>
     </Container>
   );
 };

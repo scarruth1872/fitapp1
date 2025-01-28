@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from './AuthContext';
+import { useAchievements } from '../hooks/useAchievements';
 
 const WorkoutContext = createContext();
 
@@ -30,6 +31,7 @@ export const WorkoutProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { currentUser } = useAuth();
+  const { updateAchievementProgress, checkWorkoutStreak } = useAchievements();
 
   useEffect(() => {
     if (currentUser) {
@@ -249,6 +251,26 @@ export const WorkoutProvider = ({ children }) => {
     }
   };
 
+  const completeWorkout = async (workoutId) => {
+    try {
+      const workoutRef = doc(db, 'workouts', workoutId);
+      await updateDoc(workoutRef, {
+        completed: true,
+        completedAt: serverTimestamp()
+      });
+
+      // Update achievements
+      await updateAchievementProgress('workout_count');
+      await checkWorkoutStreak();
+
+      // Refresh workouts
+      fetchWorkouts();
+    } catch (error) {
+      console.error('Error completing workout:', error);
+      throw error;
+    }
+  };
+
   const value = {
     workouts,
     loading,
@@ -260,6 +282,7 @@ export const WorkoutProvider = ({ children }) => {
     likeWorkout,
     unlikeWorkout,
     commentOnWorkout,
+    completeWorkout,
     fetchWorkouts
   };
 

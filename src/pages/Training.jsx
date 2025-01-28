@@ -7,13 +7,19 @@ import {
   Typography,
   CircularProgress,
   useTheme,
-  useMediaQuery
+  useMediaQuery,
+  Tabs,
+  Tab
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import PersonalTrainer from '../components/trainer/PersonalTrainer';
 import WorkoutAnalytics from '../components/trainer/analytics/WorkoutAnalytics';
 import ChallengeHub from '../components/trainer/social/ChallengeHub';
 import AchievementSystem from '../components/trainer/gamification/AchievementSystem';
+import ExerciseVisualizer from '../components/trainer/ExerciseVisualizer';
+import WorkoutProgramBuilder from '../components/trainer/WorkoutProgramBuilder';
+import WorkoutProgramManager from '../components/trainer/WorkoutProgramManager';
+import { WorkoutProgramProvider } from '../contexts/WorkoutProgramContext';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../config/firebase';
 import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
@@ -25,6 +31,7 @@ const TrainingPage = () => {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState(null);
   const [workoutStats, setWorkoutStats] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -69,6 +76,10 @@ const TrainingPage = () => {
     fetchUserData();
   }, [currentUser]);
 
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
   if (loading) {
     return (
       <Box 
@@ -85,126 +96,142 @@ const TrainingPage = () => {
   }
 
   return (
-    <Box 
-      component="main" 
-      sx={{ 
-        flexGrow: 1,
-        height: '100vh',
-        overflow: 'hidden',
-        position: 'relative',
-        backgroundColor: theme.palette.background.default
-      }}
-    >
-      <Container 
-        maxWidth={false} 
+    <WorkoutProgramProvider>
+      <Box 
+        component="main" 
         sx={{ 
-          height: '100%',
-          py: 2,
-          px: { xs: 1, sm: 2, md: 3 }
+          flexGrow: 1,
+          height: '100vh',
+          overflow: 'hidden',
+          position: 'relative',
+          backgroundColor: theme.palette.background.default
         }}
       >
-        <Grid 
-          container 
-          spacing={2} 
+        <Container 
+          maxWidth={false} 
           sx={{ 
             height: '100%',
-            overflow: 'hidden'
+            py: 2,
+            px: { xs: 1, sm: 2, md: 3 }
           }}
         >
           <Grid 
-            item 
-            xs={12} 
-            md={8} 
+            container 
+            spacing={2} 
             sx={{ 
               height: '100%',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            <PersonalTrainer />
-          </Grid>
-          
-          <Grid 
-            item 
-            xs={12} 
-            md={4} 
-            sx={{ 
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2,
               overflow: 'hidden'
             }}
           >
-            <Paper 
+            <Grid 
+              item 
+              xs={12} 
+              md={8} 
               sx={{ 
-                p: 2,
-                height: '33%',
-                overflow: 'auto',
-                backgroundColor: theme.palette.background.paper,
-                border: `1px solid ${theme.palette.primary.main}`,
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  backgroundColor: theme.palette.background.default,
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: theme.palette.primary.main,
-                  borderRadius: '4px',
-                },
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column'
               }}
             >
-              <WorkoutAnalytics stats={workoutStats} />
-            </Paper>
+              <Box sx={{ width: '100%', mt: 3 }}>
+                <Tabs
+                  value={activeTab}
+                  onChange={handleTabChange}
+                  centered
+                >
+                  <Tab label="Exercise Library" />
+                  <Tab label="Workout Programs" />
+                </Tabs>
+              </Box>
+
+              <Box sx={{ mt: 3 }}>
+                {activeTab === 0 && <ExerciseVisualizer />}
+                {activeTab === 1 && <WorkoutProgramManager />}
+              </Box>
+            </Grid>
             
-            <Paper 
+            <Grid 
+              item 
+              xs={12} 
+              md={4} 
               sx={{ 
-                p: 2,
-                height: '33%',
-                overflow: 'auto',
-                backgroundColor: theme.palette.background.paper,
-                border: `1px solid ${theme.palette.primary.main}`,
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  backgroundColor: theme.palette.background.default,
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: theme.palette.primary.main,
-                  borderRadius: '4px',
-                },
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                overflow: 'hidden'
               }}
             >
-              <ChallengeHub />
-            </Paper>
-            
-            <Paper 
-              sx={{ 
-                p: 2,
-                height: '33%',
-                overflow: 'auto',
-                backgroundColor: theme.palette.background.paper,
-                border: `1px solid ${theme.palette.primary.main}`,
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                },
-                '&::-webkit-scrollbar-track': {
-                  backgroundColor: theme.palette.background.default,
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: theme.palette.primary.main,
-                  borderRadius: '4px',
-                },
-              }}
-            >
-              <AchievementSystem userProfile={userProfile} />
-            </Paper>
+              <Paper 
+                sx={{ 
+                  p: 2,
+                  height: '33%',
+                  overflow: 'auto',
+                  backgroundColor: theme.palette.background.paper,
+                  border: `1px solid ${theme.palette.primary.main}`,
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: theme.palette.background.default,
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: theme.palette.primary.main,
+                    borderRadius: '4px',
+                  },
+                }}
+              >
+                <WorkoutAnalytics stats={workoutStats} />
+              </Paper>
+              
+              <Paper 
+                sx={{ 
+                  p: 2,
+                  height: '33%',
+                  overflow: 'auto',
+                  backgroundColor: theme.palette.background.paper,
+                  border: `1px solid ${theme.palette.primary.main}`,
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: theme.palette.background.default,
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: theme.palette.primary.main,
+                    borderRadius: '4px',
+                  },
+                }}
+              >
+                <ChallengeHub />
+              </Paper>
+              
+              <Paper 
+                sx={{ 
+                  p: 2,
+                  height: '33%',
+                  overflow: 'auto',
+                  backgroundColor: theme.palette.background.paper,
+                  border: `1px solid ${theme.palette.primary.main}`,
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: theme.palette.background.default,
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: theme.palette.primary.main,
+                    borderRadius: '4px',
+                  },
+                }}
+              >
+                <AchievementSystem userProfile={userProfile} />
+              </Paper>
+            </Grid>
           </Grid>
-        </Grid>
-      </Container>
-    </Box>
+        </Container>
+      </Box>
+    </WorkoutProgramProvider>
   );
 };
 

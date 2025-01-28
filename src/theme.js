@@ -4,16 +4,32 @@ const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#00ff00', // Matrix green
-      light: '#33ff33',
-      dark: '#00cc00',
-      contrastText: '#000',
+      main: '#2196f3',
+      light: '#64b5f6',
+      dark: '#1976d2',
     },
     secondary: {
-      main: '#003300', // Darker green
-      light: '#004d00',
-      dark: '#001a00',
-      contrastText: '#fff',
+      main: '#f50057',
+      light: '#ff4081',
+      dark: '#c51162',
+    },
+    gold: {
+      main: '#FFD700',
+      light: '#FFE55C',
+      dark: '#FFC000',
+      contrastText: '#000',
+    },
+    silver: {
+      main: '#C0C0C0',
+      light: '#E0E0E0',
+      dark: '#A0A0A0',
+      contrastText: '#000',
+    },
+    bronze: {
+      main: '#CD7F32',
+      light: '#DDA15E',
+      dark: '#BC6C25',
+      contrastText: '#000',
     },
     background: {
       default: '#000000',

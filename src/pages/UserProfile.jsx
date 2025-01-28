@@ -17,7 +17,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useWorkout } from '../contexts/WorkoutContext';
 import ActivityFeed from '../components/ActivityFeed';
 
-const MotionPaper = motion.create(Paper);
+// Create a motion component by passing Paper as a component prop
+const MotionPaper = motion(Paper);
 
 const UserProfile = () => {
   const { currentUser } = useAuth();

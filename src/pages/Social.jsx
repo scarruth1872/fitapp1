@@ -41,6 +41,7 @@ import useSocialNotifications from '../hooks/useSocialNotifications';
 import SocialFeed from '../components/social/SocialFeed';
 import FriendSystem from '../components/social/FriendSystem';
 import WorkoutShare from '../components/social/WorkoutShare';
+import WorkoutSocialFeed from '../components/social/WorkoutSocialFeed';
 
 const Social = () => {
   const navigate = useNavigate();
@@ -73,7 +74,8 @@ const Social = () => {
   ];
 
   const socialTabs = [
-    { id: 'feed', label: 'Feed', icon: <FeedIcon /> },
+    { id: 'feed', label: 'General Feed', icon: <FeedIcon /> },
+    { id: 'workouts', label: 'Workout Feed', icon: <FitnessCenterIcon /> },
     { id: 'friends', label: 'Friends', icon: <PeopleIcon /> },
     { id: 'saved', label: 'Saved Workouts', icon: <BookmarkIcon /> },
     { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
@@ -106,56 +108,28 @@ const Social = () => {
       </List>
       <Divider />
       <List>
-        {socialTabs.map((item) => (
+        {socialTabs.map((tab) => (
           <ListItem
             button
-            key={item.id}
-            onClick={() => {
-              setActiveView(item.id);
-              if (isMobile) setMobileOpen(false);
-            }}
-            selected={activeView === item.id}
+            key={tab.id}
+            onClick={() => setActiveView(tab.id)}
+            selected={activeView === tab.id}
           >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.label} />
+            <ListItemIcon>{tab.icon}</ListItemIcon>
+            <ListItemText primary={tab.label} />
           </ListItem>
         ))}
       </List>
     </Box>
   );
 
-  const renderContent = () => {
-    switch (activeView) {
-      case 'feed':
-        return <SocialFeed />;
-      case 'friends':
-        return <FriendSystem />;
-      case 'saved':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h6">Saved Workouts</Typography>
-            {/* Implement saved workouts view */}
-          </Box>
-        );
-      case 'settings':
-        return (
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h6">Social Settings</Typography>
-            {/* Implement settings view */}
-          </Box>
-        );
-      default:
-        return <SocialFeed />;
-    }
-  };
-
   return (
-    <Box sx={{ display: 'flex', height: '100vh' }}>
-      <AppBar 
-        position="fixed" 
-        sx={{ 
-          zIndex: theme.zIndex.drawer + 1,
-          backgroundColor: theme.palette.mode === 'dark' ? '#000' : theme.palette.primary.main,
+    <Box sx={{ display: 'flex' }}>
+      <AppBar
+        position="fixed"
+        sx={{
+          width: { sm: `calc(100% - ${isMobile ? 0 : 240}px)` },
+          ml: { sm: `${isMobile ? 0 : 240}px` },
         }}
       >
         <Toolbar>
@@ -167,46 +141,24 @@ const Social = () => {
           >
             <MenuIcon />
           </IconButton>
-          
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {socialTabs.find(item => item.id === activeView)?.label || 'Social'}
+            Social
           </Typography>
-
-          {/* Main Navigation Buttons - Desktop Only */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, mr: 2 }}>
-            {navigationItems.map((item) => (
-              <Button
-                key={item.id}
-                color="inherit"
-                startIcon={item.icon}
-                onClick={() => handleNavigation(item.path)}
-                sx={{ 
-                  mx: 1,
-                  borderBottom: item.id === 'social' ? '2px solid' : 'none',
-                }}
-              >
-                {item.label}
-              </Button>
-            ))}
-          </Box>
-
-          <IconButton color="inherit" onClick={(e) => setNotificationAnchor(e.currentTarget)}>
+          <IconButton
+            color="inherit"
+            onClick={(e) => setNotificationAnchor(e.currentTarget)}
+          >
             <Badge badgeContent={unreadCount} color="error">
               <NotificationsIcon />
             </Badge>
           </IconButton>
-
-          <IconButton 
+          <IconButton
+            color="inherit"
             onClick={(e) => setUserMenuAnchor(e.currentTarget)}
-            sx={{ ml: 1 }}
           >
             <Avatar
               src={currentUser?.photoURL}
-              sx={{ 
-                width: 32, 
-                height: 32,
-                border: theme => theme.palette.mode === 'dark' ? '1px solid #00ff00' : 'none',
-              }}
+              sx={{ width: 32, height: 32 }}
             >
               {currentUser?.displayName?.[0]}
             </Avatar>
@@ -220,16 +172,15 @@ const Social = () => {
       >
         <Drawer
           variant={isMobile ? 'temporary' : 'permanent'}
-          open={mobileOpen}
+          open={isMobile ? mobileOpen : true}
           onClose={() => setMobileOpen(false)}
           ModalProps={{
             keepMounted: true,
           }}
           sx={{
-            '& .MuiDrawer-paper': { 
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
               width: 240,
-              backgroundColor: theme => theme.palette.mode === 'dark' ? '#000' : theme.palette.background.paper,
-              borderRight: theme => theme.palette.mode === 'dark' ? '1px solid rgba(0, 255, 0, 0.3)' : '1px solid rgba(0, 0, 0, 0.12)',
             },
           }}
         >
@@ -244,117 +195,73 @@ const Social = () => {
           p: 3,
           width: { sm: `calc(100% - 240px)` },
           mt: 8,
-          backgroundColor: theme => theme.palette.mode === 'dark' ? '#000' : theme.palette.background.default,
         }}
       >
-        {renderContent()}
+        {activeView === 'feed' && <SocialFeed />}
+        {activeView === 'workouts' && <WorkoutSocialFeed />}
+        {activeView === 'friends' && <FriendSystem />}
+        {activeView === 'saved' && (
+          <Typography>Saved Workouts Coming Soon</Typography>
+        )}
+        {activeView === 'settings' && (
+          <Typography>Settings Coming Soon</Typography>
+        )}
+
+        <Fab
+          color="primary"
+          sx={{
+            position: 'fixed',
+            bottom: 16,
+            right: 16,
+          }}
+          onClick={() => setShowShare(true)}
+        >
+          <AddIcon />
+        </Fab>
       </Box>
 
-      <Fab
-        color="primary"
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-          backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 0.8)' : theme.palette.primary.main,
-          '&:hover': {
-            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(0, 255, 0, 1)' : theme.palette.primary.dark,
-          },
-        }}
-        onClick={() => {
-          setWorkoutToShare({
-            title: "Today's Workout",
-            exercises: [
-              { name: 'Push-ups', sets: 3, reps: 12 },
-              { name: 'Squats', sets: 4, reps: 15 },
-            ],
-            duration: '45 minutes',
-            intensity: 'Medium',
-          });
-          setShowShare(true);
-        }}
-      >
-        <AddIcon />
-      </Fab>
-
-      {/* Notifications Menu */}
       <Menu
         anchorEl={notificationAnchor}
         open={Boolean(notificationAnchor)}
         onClose={() => setNotificationAnchor(null)}
-        PaperProps={{
-          sx: {
-            maxHeight: 300,
-            width: 320,
-            mt: 1,
-          },
-        }}
       >
-        {notifications.length > 0 ? (
-          notifications.map((notification) => (
-            <MenuItem 
-              key={notification.id}
-              onClick={() => {
-                markAsRead(notification.id);
-                setNotificationAnchor(null);
-              }}
-            >
-              <ListItemText 
-                primary={notification.title}
-                secondary={notification.message}
-              />
-            </MenuItem>
-          ))
-        ) : (
-          <MenuItem disabled>
-            <ListItemText primary="No new notifications" />
+        {notifications.map((notification) => (
+          <MenuItem
+            key={notification.id}
+            onClick={() => {
+              markAsRead(notification.id);
+              setNotificationAnchor(null);
+            }}
+          >
+            {notification.message}
           </MenuItem>
-        )}
+        ))}
       </Menu>
 
-      {/* User Menu */}
       <Menu
         anchorEl={userMenuAnchor}
         open={Boolean(userMenuAnchor)}
         onClose={() => setUserMenuAnchor(null)}
       >
-        <MenuItem onClick={() => {
-          setActiveView('profile');
-          setUserMenuAnchor(null);
-        }}>
+        <MenuItem onClick={() => navigate('/profile')}>
           <ListItemIcon>
             <AccountCircleIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Profile" />
+          Profile
         </MenuItem>
-        <MenuItem onClick={() => {
-          setActiveView('settings');
-          setUserMenuAnchor(null);
-        }}>
-          <ListItemIcon>
-            <SettingsIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText primary="Settings" />
-        </MenuItem>
-        <Divider />
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText primary="Logout" />
+          Logout
         </MenuItem>
       </Menu>
 
-      {/* Workout Share Dialog */}
-      {showShare && (
-        <WorkoutShare
-          workout={workoutToShare}
-          onClose={() => {
-            setShowShare(false);
-            setWorkoutToShare(null);
-          }}
-        />
-      )}
+      <WorkoutShare
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        workout={workoutToShare}
+      />
     </Box>
   );
 };

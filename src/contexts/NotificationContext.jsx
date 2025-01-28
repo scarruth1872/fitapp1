@@ -25,9 +25,9 @@ export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [achievementNotification, setAchievementNotification] = useState(null);
   const { currentUser } = useAuth();
 
-  // Listen for new notifications
   useEffect(() => {
     if (!currentUser) {
       setNotifications([]);
@@ -59,7 +59,6 @@ export function NotificationProvider({ children }) {
     return () => unsubscribe();
   }, [currentUser]);
 
-  // Create a new notification
   const createNotification = async (userId, data) => {
     try {
       const notificationsRef = collection(db, 'notifications');
@@ -71,12 +70,19 @@ export function NotificationProvider({ children }) {
       };
       
       await addDoc(notificationsRef, newNotification);
+
+      // Show achievement notification if type is achievement
+      if (data.type === 'achievement') {
+        setAchievementNotification({
+          open: true,
+          achievement: data.achievement
+        });
+      }
     } catch (error) {
       console.error('Error creating notification:', error);
     }
   };
 
-  // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
       const notificationRef = doc(db, 'notifications', notificationId);
@@ -98,7 +104,6 @@ export function NotificationProvider({ children }) {
     }
   };
 
-  // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
       const unreadNotifications = notifications.filter(n => !n.read);
@@ -114,71 +119,45 @@ export function NotificationProvider({ children }) {
       setNotifications(prev =>
         prev.map(notification => ({ ...notification, read: true }))
       );
-
+      
       setUnreadCount(0);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
     }
   };
 
-  // Create follow notification
-  const notifyFollow = async (followerId, followerName) => {
-    await createNotification(currentUser.uid, {
-      type: 'follow',
-      followerId,
-      followerName,
-      message: `${followerName} started following you`
-    });
+  const clearAchievementNotification = () => {
+    setAchievementNotification(null);
   };
 
-  // Create like notification
-  const notifyLike = async (userId, userName, postId, postType) => {
-    await createNotification(userId, {
-      type: 'like',
-      likerId: currentUser.uid,
-      likerName: currentUser.displayName,
-      postId,
-      postType,
-      message: `${currentUser.displayName} liked your ${postType}`
-    });
-  };
+  const shareAchievement = async (achievement) => {
+    try {
+      const socialPost = {
+        userId: currentUser.uid,
+        type: 'achievement',
+        achievement: achievement,
+        content: `I just unlocked the ${achievement.name} achievement! 🏆`,
+        createdAt: Timestamp.now(),
+        likes: [],
+        comments: []
+      };
 
-  // Create comment notification
-  const notifyComment = async (userId, userName, postId, postType) => {
-    await createNotification(userId, {
-      type: 'comment',
-      commenterId: currentUser.uid,
-      commenterName: currentUser.displayName,
-      postId,
-      postType,
-      message: `${currentUser.displayName} commented on your ${postType}`
-    });
-  };
-
-  // Create workout share notification
-  const notifyWorkoutShare = async (followers) => {
-    await Promise.all(
-      followers.map(followerId =>
-        createNotification(followerId, {
-          type: 'workout_share',
-          sharerId: currentUser.uid,
-          sharerName: currentUser.displayName,
-          message: `${currentUser.displayName} shared a new workout`
-        })
-      )
-    );
+      await addDoc(collection(db, 'socialPosts'), socialPost);
+    } catch (error) {
+      console.error('Error sharing achievement:', error);
+    }
   };
 
   const value = {
     notifications,
     unreadCount,
     loading,
+    createNotification,
     markAsRead,
     markAllAsRead,
-    notifyFollow,
-    notifyLike,
-    notifyComment,
-    notifyWorkoutShare
+    achievementNotification,
+    clearAchievementNotification,
+    shareAchievement
   };
 
   return (

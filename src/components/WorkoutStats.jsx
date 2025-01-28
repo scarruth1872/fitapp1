@@ -16,7 +16,8 @@ import {
 import { motion } from 'framer-motion';
 import { useWorkout } from '../contexts/WorkoutContext';
 
-const MotionBox = motion.create(Box);
+// Create a motion component by passing Box as a component prop
+const MotionBox = motion(Box);
 
 const WorkoutStats = () => {
   const theme = useTheme();

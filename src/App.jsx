@@ -1,5 +1,5 @@
 import React from 'react';
-import { RouterProvider, createBrowserRouter, createRoutesFromElements, Route, Navigate } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -9,6 +9,8 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { AuthProvider } from './contexts/AuthContext';
 import { WorkoutProvider } from './contexts/WorkoutContext';
 import { ExerciseProvider } from './contexts/ExerciseContext';
+import { WorkoutProgramProvider } from './contexts/WorkoutProgramContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // Theme
 import theme from './theme';
@@ -16,7 +18,6 @@ import theme from './theme';
 // Components
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-import ConsultationBooking from './components/booking/ConsultationBooking';
 
 // Pages
 import Home from './pages/Home';
@@ -34,89 +35,73 @@ import Scheduling from './pages/Scheduling';
 import Pricing from './pages/Pricing';
 import BookingLanding from './pages/BookingLanding';
 
-const router = createBrowserRouter(
-  createRoutesFromElements(
-    <Route path="/" element={<Layout />}>
-      <Route index element={<Home />} />
-      <Route path="login" element={<Login />} />
-      <Route path="signup" element={<Signup />} />
-      <Route path="articles" element={<Articles />} />
-      <Route path="diagnosis" element={
-        <ProtectedRoute>
-          <Diagnosis />
-        </ProtectedRoute>
-      } />
-      <Route path="counseling" element={
-        <ProtectedRoute>
-          <Counseling />
-        </ProtectedRoute>
-      } />
-      <Route path="training" element={
-        <ProtectedRoute>
-          <Training />
-        </ProtectedRoute>
-      } />
-      <Route path="progress" element={
-        <ProtectedRoute>
-          <Progress />
-        </ProtectedRoute>
-      } />
-      <Route path="profile" element={
-        <ProtectedRoute>
-          <UserProfile />
-        </ProtectedRoute>
-      } />
-      <Route path="chat" element={
-        <ProtectedRoute>
-          <Chat />
-        </ProtectedRoute>
-      } />
-      <Route path="social" element={
-        <ProtectedRoute>
-          <Social />
-        </ProtectedRoute>
-      } />
-      <Route path="schedule" element={
-        <ProtectedRoute>
-          <Scheduling />
-        </ProtectedRoute>
-      } />
-      <Route path="book" element={
-        <ProtectedRoute>
-          <BookingLanding />
-        </ProtectedRoute>
-      } />
-      <Route path="booking" element={
-        <ProtectedRoute>
-          <ConsultationBooking />
-        </ProtectedRoute>
-      } />
-      <Route path="pricing" element={<Pricing />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Route>
-  ),
+const router = createBrowserRouter([
   {
-    future: {
-      v7_startTransition: true,
-      v7_relativeSplatPath: true,
-    },
+    path: '/',
+    element: <Layout />,
+    children: [
+      { index: true, element: <Home /> },
+      { path: 'login', element: <Login /> },
+      { path: 'signup', element: <Signup /> },
+      { path: 'articles', element: <Articles /> },
+      {
+        path: 'diagnosis',
+        element: <ProtectedRoute><Diagnosis /></ProtectedRoute>
+      },
+      {
+        path: 'counseling',
+        element: <ProtectedRoute><Counseling /></ProtectedRoute>
+      },
+      {
+        path: 'training',
+        element: <ProtectedRoute><Training /></ProtectedRoute>
+      },
+      {
+        path: 'progress',
+        element: <ProtectedRoute><Progress /></ProtectedRoute>
+      },
+      {
+        path: 'profile',
+        element: <ProtectedRoute><UserProfile /></ProtectedRoute>
+      },
+      {
+        path: 'chat',
+        element: <ProtectedRoute><Chat /></ProtectedRoute>
+      },
+      {
+        path: 'social',
+        element: <ProtectedRoute><Social /></ProtectedRoute>
+      },
+      {
+        path: 'schedule',
+        element: <ProtectedRoute><Scheduling /></ProtectedRoute>
+      },
+      {
+        path: 'pricing',
+        element: <Pricing />
+      }
+    ]
   }
-);
+]);
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <WorkoutProvider>
-            <ExerciseProvider>
-              <RouterProvider router={router} />
-            </ExerciseProvider>
-          </WorkoutProvider>
-        </LocalizationProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <LocalizationProvider dateAdapter={AdapterDateFns}>
+        <AuthProvider>
+          <NotificationProvider>
+            <WorkoutProvider>
+              <WorkoutProgramProvider>
+                <ExerciseProvider>
+                  <RouterProvider router={router} />
+                </ExerciseProvider>
+              </WorkoutProgramProvider>
+            </WorkoutProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </LocalizationProvider>
+    </ThemeProvider>
   );
 }
 
