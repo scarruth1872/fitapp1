@@ -1,142 +1,211 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
-  Container,
   Box,
-  Button,
-  Typography,
+  Container,
   Grid,
-  Card,
-  CardContent,
   Paper,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Chip,
-  Tabs,
-  Tab,
-  Dialog
+  Typography,
+  CircularProgress,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import TimelineIcon from '@mui/icons-material/Timeline';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import SaveIcon from '@mui/icons-material/Save';
 import { motion } from 'framer-motion';
-import WorkoutForm from '../components/WorkoutForm';
-import WorkoutList from '../components/WorkoutList';
-import WorkoutStats from '../components/WorkoutStats';
-import ProgressCharts from '../components/ProgressCharts';
-import ExerciseLibrary from '../components/ExerciseLibrary';
-import WorkoutTemplates from '../components/WorkoutTemplates';
+import PersonalTrainer from '../components/trainer/PersonalTrainer';
+import WorkoutAnalytics from '../components/trainer/analytics/WorkoutAnalytics';
+import ChallengeHub from '../components/trainer/social/ChallengeHub';
+import AchievementSystem from '../components/trainer/gamification/AchievementSystem';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../config/firebase';
+import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
 
-function Training() {
-  const [selectedTab, setSelectedTab] = useState(0);
-  const [showWorkoutForm, setShowWorkoutForm] = useState(false);
+const TrainingPage = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { currentUser } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
+  const [workoutStats, setWorkoutStats] = useState(null);
 
-  const handleTabChange = (event, newValue) => {
-    setSelectedTab(newValue);
-  };
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!currentUser) return;
 
-  const containerVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
+      try {
+        setLoading(true);
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        const profile = userDoc.exists() ? userDoc.data() : null;
+        setUserProfile(profile);
+
+        const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts');
+        const workoutsSnap = await getDocs(workoutsRef);
+        
+        let stats = {
+          totalWorkouts: 0,
+          totalDuration: 0,
+          totalCalories: 0,
+          workouts: [],
+          lastWorkout: null
+        };
+
+        workoutsSnap.forEach(doc => {
+          const workout = doc.data();
+          stats.totalWorkouts++;
+          stats.totalDuration += workout.duration || 0;
+          stats.totalCalories += workout.caloriesBurned || 0;
+          stats.workouts.push(workout);
+          if (!stats.lastWorkout || workout.date > stats.lastWorkout.date) {
+            stats.lastWorkout = workout;
+          }
+        });
+
+        setWorkoutStats(stats);
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [currentUser]);
+
+  if (loading) {
+    return (
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center',
+          minHeight: '100vh'
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
-    <Container maxWidth="lg">
-      <Box sx={{ my: 4 }}>
-        <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          transition={{ duration: 0.5 }}
-        >
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h4" component="h1" gutterBottom sx={{ color: 'primary.main' }}>
-              Training Dashboard
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setShowWorkoutForm(true)}
-              sx={{ backgroundColor: 'primary.main' }}
-            >
-              Log Workout
-            </Button>
-          </Box>
-
-          <WorkoutStats />
-
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-            <Tabs 
-              value={selectedTab} 
-              onChange={handleTabChange}
-              textColor="primary"
-              indicatorColor="primary"
-            >
-              <Tab icon={<TimelineIcon />} label="Progress" />
-              <Tab icon={<FitnessCenterIcon />} label="History" />
-              <Tab icon={<MenuBookIcon />} label="Exercise Library" />
-              <Tab icon={<SaveIcon />} label="Templates" />
-            </Tabs>
-          </Box>
-
-          {selectedTab === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <ProgressCharts />
-            </motion.div>
-          )}
-
-          {selectedTab === 1 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <WorkoutList />
-            </motion.div>
-          )}
-
-          {selectedTab === 2 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <ExerciseLibrary />
-            </motion.div>
-          )}
-
-          {selectedTab === 3 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <WorkoutTemplates />
-            </motion.div>
-          )}
-        </motion.div>
-      </Box>
-
-      <Dialog 
-        open={showWorkoutForm} 
-        onClose={() => setShowWorkoutForm(false)}
-        maxWidth="md"
-        fullWidth
+    <Box 
+      component="main" 
+      sx={{ 
+        flexGrow: 1,
+        height: '100vh',
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: theme.palette.background.default
+      }}
+    >
+      <Container 
+        maxWidth={false} 
+        sx={{ 
+          height: '100%',
+          py: 2,
+          px: { xs: 1, sm: 2, md: 3 }
+        }}
       >
-        <WorkoutForm 
-          open={showWorkoutForm} 
-          onClose={() => setShowWorkoutForm(false)} 
-        />
-      </Dialog>
-    </Container>
+        <Grid 
+          container 
+          spacing={2} 
+          sx={{ 
+            height: '100%',
+            overflow: 'hidden'
+          }}
+        >
+          <Grid 
+            item 
+            xs={12} 
+            md={8} 
+            sx={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <PersonalTrainer />
+          </Grid>
+          
+          <Grid 
+            item 
+            xs={12} 
+            md={4} 
+            sx={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2,
+              overflow: 'hidden'
+            }}
+          >
+            <Paper 
+              sx={{ 
+                p: 2,
+                height: '33%',
+                overflow: 'auto',
+                backgroundColor: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.primary.main}`,
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: theme.palette.background.default,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: theme.palette.primary.main,
+                  borderRadius: '4px',
+                },
+              }}
+            >
+              <WorkoutAnalytics stats={workoutStats} />
+            </Paper>
+            
+            <Paper 
+              sx={{ 
+                p: 2,
+                height: '33%',
+                overflow: 'auto',
+                backgroundColor: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.primary.main}`,
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: theme.palette.background.default,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: theme.palette.primary.main,
+                  borderRadius: '4px',
+                },
+              }}
+            >
+              <ChallengeHub />
+            </Paper>
+            
+            <Paper 
+              sx={{ 
+                p: 2,
+                height: '33%',
+                overflow: 'auto',
+                backgroundColor: theme.palette.background.paper,
+                border: `1px solid ${theme.palette.primary.main}`,
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: theme.palette.background.default,
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: theme.palette.primary.main,
+                  borderRadius: '4px',
+                },
+              }}
+            >
+              <AchievementSystem userProfile={userProfile} />
+            </Paper>
+          </Grid>
+        </Grid>
+      </Container>
+    </Box>
   );
-}
+};
 
-export default Training;
+export default TrainingPage;

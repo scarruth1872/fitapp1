@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar,
   Box,
@@ -10,19 +10,27 @@ import {
   Container,
   Avatar,
   Button,
+  Tooltip,
   MenuItem,
   Drawer,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
+  Divider,
   useTheme,
   useMediaQuery
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  FitnessCenter as WorkoutIcon,
+  FitnessCenter as FitnessCenterIcon,
+  People as PeopleIcon,
+  Forum as ForumIcon,
+  CalendarToday as CalendarIcon,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  EventAvailable as BookingIcon,
   Timeline as ProgressIcon,
   Group as SocialIcon,
   Person as ProfileIcon,
@@ -36,29 +44,40 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 
 const publicPages = [
-  { name: 'Home', path: '/', icon: <HomeIcon /> },
-  { name: 'Articles', path: '/articles', icon: <ArticleIcon /> },
-  { name: 'Pricing', path: '/pricing', icon: <PricingIcon /> }
+  { title: 'Home', path: '/', icon: <HomeIcon /> },
+  { title: 'Articles', path: '/articles', icon: <ArticleIcon /> },
+  { title: 'Pricing', path: '/pricing', icon: <PricingIcon /> }
 ];
 
 const privatePages = [
-  { name: 'Diagnosis', path: '/diagnosis', icon: <DiagnosisIcon /> },
-  { name: 'Counseling', path: '/counseling', icon: <CounselingIcon /> },
-  { name: 'Training', path: '/training', icon: <WorkoutIcon /> },
-  { name: 'Progress', path: '/progress', icon: <ProgressIcon /> },
-  { name: 'Chat', path: '/chat', icon: <ChatIcon /> },
-  { name: 'Schedule', path: '/schedule', icon: <ScheduleIcon /> },
-  { name: 'Social', path: '/social', icon: <SocialIcon /> }
+  { title: 'Diagnosis', path: '/diagnosis', icon: <DiagnosisIcon /> },
+  { title: 'Counseling', path: '/counseling', icon: <CounselingIcon /> },
+  { title: 'Training', path: '/training', icon: <FitnessCenterIcon /> },
+  { title: 'Progress', path: '/progress', icon: <ProgressIcon /> },
+  { title: 'Chat', path: '/chat', icon: <ChatIcon /> },
+  { title: 'Schedule', path: '/schedule', icon: <ScheduleIcon /> },
+  { title: 'Social', path: '/social', icon: <SocialIcon /> },
+  { title: 'Book Consultation', path: '/booking', icon: <BookingIcon /> },
 ];
 
 const Navbar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { currentUser, logout } = useAuth();
+
   const [anchorElNav, setAnchorElNav] = useState(null);
   const [anchorElUser, setAnchorElUser] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const navigate = useNavigate();
-  const { currentUser, logout } = useAuth();
+
+  const pages = [...publicPages, ...(currentUser ? privatePages : [])];
+
+  const settings = [
+    { title: 'Profile', path: '/profile', icon: <Avatar sx={{ width: 24, height: 24 }} /> },
+    { title: 'Settings', path: '/settings', icon: <SettingsIcon /> },
+    { title: 'Logout', action: handleLogout, icon: <LogoutIcon /> },
+  ];
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -80,33 +99,60 @@ const Navbar = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleLogout = async () => {
+  async function handleLogout() {
     try {
       await logout();
-      handleCloseUserMenu();
       navigate('/login');
     } catch (error) {
       console.error('Failed to log out:', error);
     }
-  };
-
-  const allPages = [...publicPages, ...(currentUser ? privatePages : [])];
+  }
 
   const drawer = (
-    <List>
-      {allPages.map((page) => (
-        <ListItem
-          button
-          key={page.name}
-          component={RouterLink}
-          to={page.path}
-          onClick={handleDrawerToggle}
-        >
-          <ListItemIcon>{page.icon}</ListItemIcon>
-          <ListItemText primary={page.name} />
-        </ListItem>
-      ))}
-    </List>
+    <Box sx={{ width: 250 }}>
+      <Box sx={{ p: 2 }}>
+        <Typography variant="h6" noWrap component="div">
+          FitApp
+        </Typography>
+      </Box>
+      <Divider />
+      <List>
+        {pages.map((page) => (
+          <ListItem
+            button
+            key={page.title}
+            onClick={() => {
+              navigate(page.path);
+              setMobileOpen(false);
+            }}
+            selected={location.pathname === page.path}
+          >
+            <ListItemIcon>{page.icon}</ListItemIcon>
+            <ListItemText primary={page.title} />
+          </ListItem>
+        ))}
+      </List>
+      <Divider />
+      <List>
+        {settings.map((setting) => (
+          <ListItem
+            button
+            key={setting.title}
+            onClick={() => {
+              if (setting.action) {
+                setting.action();
+              } else {
+                navigate(setting.path);
+              }
+              setMobileOpen(false);
+            }}
+          >
+            <ListItemIcon>{setting.icon}</ListItemIcon>
+            <ListItemText primary={setting.title} />
+          </ListItem>
+        ))}
+      </List>
+    </Box>
   );
 
   return (
@@ -147,9 +193,9 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
-              {allPages.map((page) => (
+              {pages.map((page) => (
                 <Button
-                  key={page.name}
+                  key={page.title}
                   component={RouterLink}
                   to={page.path}
                   sx={{
@@ -161,7 +207,7 @@ const Navbar = () => {
                   }}
                 >
                   {page.icon}
-                  {page.name}
+                  {page.title}
                 </Button>
               ))}
             </Box>

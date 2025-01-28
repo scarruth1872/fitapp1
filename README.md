@@ -153,3 +153,172 @@ src/
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+# FitApp - Comprehensive Fitness Application
+
+## Version 1.0.0 (Stable Release)
+Current stable version with complete exercise database and core functionality.
+
+## Features
+- Comprehensive exercise database with 110 exercises across 11 categories:
+  - Strength Training
+  - Cardiovascular Training
+  - Bodyweight Training
+  - Isolation Exercises
+  - Core Training
+  - Plyometric Training
+  - Olympic Weightlifting
+  - Functional Training
+  - Mobility and Flexibility
+  - Balance and Stability
+  - Recovery and Regeneration
+
+- Each exercise includes:
+  - Detailed descriptions
+  - Equipment requirements
+  - Difficulty levels
+  - Primary and secondary muscles worked
+  - Proper form and execution
+  - Common errors and tips
+  - Benefits and variations
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm (v9 or higher)
+
+### Installation
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/fitapp1.git
+```
+
+2. Install dependencies:
+```bash
+cd fitapp1
+npm install
+```
+
+3. Start the development server:
+```bash
+npm run dev
+```
+
+## Technology Stack
+- React.js
+- Material-UI
+- Firebase
+- Vite
+
+## Contributing
+Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+- Exercise database contributors
+- UI/UX design team
+- Testing team
+
+## Changelog
+### v1.0.0 (2025-01-28)
+- Complete exercise database with 110 exercises
+- Stable core functionality
+- Improved user interface
+- Bug fixes and performance improvements
+
+## Setup Instructions
+
+1. **Install Dependencies**
+```bash
+npm install
+```
+
+2. **Environment Variables**
+Create a `.env` file with the following:
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+3. **Cal.com Setup**
+- Create an account at [Cal.com](https://cal.com)
+- Set up your event types matching the consultation packages
+- Replace `your-cal-username` in `ConsultationBooking.jsx` with your Cal.com username
+
+4. **Start Development Server**
+```bash
+npm run dev
+```
+
+5. **Build for Production**
+```bash
+npm run build
+```
+
+## Project Structure
+
+```
+fitapp1/
+├── src/
+│   ├── components/
+│   │   ├── auth/          # Authentication components
+│   │   ├── booking/       # Consultation booking components
+│   │   ├── social/        # Social feed and interactions
+│   │   └── workout/       # Workout tracking components
+│   ├── contexts/          # React contexts
+│   ├── hooks/             # Custom hooks
+│   ├── pages/             # Main page components
+│   ├── utils/             # Utility functions
+│   └── config/            # Configuration files
+├── public/                # Static assets
+└── docs/                  # Documentation
+```
+
+## Technologies Used
+
+- React with Vite
+- Material-UI
+- Firebase (Auth, Firestore, Analytics)
+- Cal.com for scheduling
+- Framer Motion for animations
+
+## Development Guidelines
+
+1. **Code Style**
+   - Use functional components with hooks
+   - Implement proper error handling
+   - Follow Material-UI theming patterns
+   - Use TypeScript for type safety
+
+2. **State Management**
+   - Use React Context for global state
+   - Implement proper data fetching patterns
+   - Handle loading and error states
+
+3. **Testing**
+   - Write unit tests for utilities
+   - Test components in isolation
+   - Implement integration tests
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Support
+
+For support, email support@fitapp.com or open an issue on GitHub.
