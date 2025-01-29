@@ -154,49 +154,71 @@ src/
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-# FitApp - Comprehensive Fitness Application
+# FitApp - Your Personal Fitness Journey
 
-## Version 1.0.0 (Stable Release)
-Current stable version with complete exercise database and core functionality.
+A modern, AI-powered fitness application that helps users track workouts, set goals, and connect with other fitness enthusiasts.
 
 ## Features
-- Comprehensive exercise database with 110 exercises across 11 categories:
-  - Strength Training
-  - Cardiovascular Training
-  - Bodyweight Training
-  - Isolation Exercises
-  - Core Training
-  - Plyometric Training
-  - Olympic Weightlifting
-  - Functional Training
-  - Mobility and Flexibility
-  - Balance and Stability
-  - Recovery and Regeneration
 
-- Each exercise includes:
-  - Detailed descriptions
-  - Equipment requirements
-  - Difficulty levels
-  - Primary and secondary muscles worked
-  - Proper form and execution
-  - Common errors and tips
-  - Benefits and variations
+- **User Authentication**: Secure login and signup system with password recovery
+- **Training Programs**: Customizable workout plans and routines
+- **Progress Tracking**: Monitor your fitness journey with detailed metrics
+- **Social Feed**: Share workout updates and achievements
+- **Friend System**: Connect with other fitness enthusiasts
+  - Send and receive friend requests
+  - Search for users
+  - Manage friend connections
+- **Workout Sharing**: Share your fitness progress with custom privacy settings
+  - Public, friends-only, or private sharing options
+  - Like and comment on shared workouts
+  - Save workouts from other users
+- **Real-time Notifications**: Stay updated with social interactions
+  - Friend request notifications
+  - Likes and comments alerts
+  - Workout share notifications
 
-## Getting Started
+## Technical Stack
 
-### Prerequisites
-- Node.js (v18 or higher)
-- npm (v9 or higher)
+- **Frontend**: React 18 with Vite
+- **UI Framework**: Material-UI v5
+- **Authentication**: Firebase Authentication
+- **Database**: Firebase Firestore
+- **Storage**: Firebase Storage
+- **State Management**: React Context API
+- **Routing**: React Router v6
+- **Animations**: Framer Motion
+- **Charts**: Recharts
+- **Styling**: Emotion/Styled Components
 
-### Installation
+## Prerequisites
+
+- Node.js (v16 or higher)
+- npm (v7 or higher)
+- A Firebase project with Authentication, Firestore, and Storage enabled
+
+## Environment Setup
+
+1. Create a `.env` file in the root directory with your Firebase configuration:
+```
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+```
+
+## Installation
+
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/fitapp1.git
+git clone [repository-url]
+cd fitapp1
 ```
 
 2. Install dependencies:
 ```bash
-cd fitapp1
 npm install
 ```
 
@@ -205,120 +227,43 @@ npm install
 npm run dev
 ```
 
-## Technology Stack
-- React.js
-- Material-UI
-- Firebase
-- Vite
+The application will be available at `http://localhost:5173`
 
-## Contributing
-Please read CONTRIBUTING.md for details on our code of conduct and the process for submitting pull requests.
+## Development Notes
 
-## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+### Version 1.0.0 Stable Release
+- Fixed Firebase authentication issues
+- Improved error handling for network connectivity
+- Added proper CORS configuration
+- Enhanced environment variable handling
+- Removed Firebase emulator dependencies for production use
 
-## Acknowledgments
-- Exercise database contributors
-- UI/UX design team
-- Testing team
-
-## Changelog
-### v1.0.0 (2025-01-28)
-- Complete exercise database with 110 exercises
-- Stable core functionality
-- Improved user interface
-- Bug fixes and performance improvements
-
-## Setup Instructions
-
-1. **Install Dependencies**
-```bash
-npm install
-```
-
-2. **Environment Variables**
-Create a `.env` file with the following:
-```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_auth_domain
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
-VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
-```
-
-3. **Cal.com Setup**
-- Create an account at [Cal.com](https://cal.com)
-- Set up your event types matching the consultation packages
-- Replace `your-cal-username` in `ConsultationBooking.jsx` with your Cal.com username
-
-4. **Start Development Server**
-```bash
-npm run dev
-```
-
-5. **Build for Production**
-```bash
-npm run build
-```
+### Known Issues
+- React Router will show a Future Flag Warning about `startTransition` - this is expected and will be resolved in React Router v7
 
 ## Project Structure
 
 ```
-fitapp1/
-├── src/
-│   ├── components/
-│   │   ├── auth/          # Authentication components
-│   │   ├── booking/       # Consultation booking components
-│   │   ├── social/        # Social feed and interactions
-│   │   └── workout/       # Workout tracking components
-│   ├── contexts/          # React contexts
-│   ├── hooks/             # Custom hooks
-│   ├── pages/             # Main page components
-│   ├── utils/             # Utility functions
-│   └── config/            # Configuration files
-├── public/                # Static assets
-└── docs/                  # Documentation
+src/
+├── assets/            # Static assets and images
+├── components/        # Reusable UI components
+├── config/           # Configuration files (Firebase, etc.)
+├── contexts/         # React Context providers
+├── hooks/            # Custom React hooks
+├── layouts/          # Page layout components
+├── pages/            # Main application pages
+├── scripts/          # Utility scripts
+├── styles/           # Global styles and themes
+└── utils/            # Helper functions and utilities
 ```
-
-## Technologies Used
-
-- React with Vite
-- Material-UI
-- Firebase (Auth, Firestore, Analytics)
-- Cal.com for scheduling
-- Framer Motion for animations
-
-## Development Guidelines
-
-1. **Code Style**
-   - Use functional components with hooks
-   - Implement proper error handling
-   - Follow Material-UI theming patterns
-   - Use TypeScript for type safety
-
-2. **State Management**
-   - Use React Context for global state
-   - Implement proper data fetching patterns
-   - Handle loading and error states
-
-3. **Testing**
-   - Write unit tests for utilities
-   - Test components in isolation
-   - Implement integration tests
 
 ## Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+1. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+2. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+3. Push to the branch (`git push origin feature/AmazingFeature`)
+4. Open a Pull Request
 
 ## License
 
-MIT License - See LICENSE file for details
-
-## Support
-
-For support, email support@fitapp.com or open an issue on GitHub.
+This project is licensed under the MIT License - see the LICENSE file for details

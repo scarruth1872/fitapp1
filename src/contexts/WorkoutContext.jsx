@@ -30,6 +30,7 @@ export const WorkoutProvider = ({ children }) => {
   const [workouts, setWorkouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState(null);
   const { currentUser } = useAuth();
   const { updateAchievementProgress, checkWorkoutStreak } = useAchievements();
 
@@ -128,22 +129,21 @@ export const WorkoutProvider = ({ children }) => {
       const workout = workouts.find(w => w.id === workoutId);
       if (!workout) throw new Error('Workout not found');
 
-      // Update workout visibility
-      await updateDoc(doc(db, 'workouts', workoutId), {
-        isPublic: true
-      });
-
-      // Create social feed entry
-      const socialData = {
-        type: 'workout',
+      // Create a new social post document
+      const socialPostRef = collection(db, 'social_posts');
+      const postData = {
+        type: 'workout_share',
         userId: currentUser.uid,
-        userName: currentUser.displayName,
-        userAvatar: currentUser.photoURL,
+        userName: currentUser.displayName || 'Anonymous',
+        userAvatar: currentUser.photoURL || '',
         workoutId,
         workoutData: {
-          title: workout.title,
+          name: workout.name,
+          type: workout.type,
           exercises: workout.exercises,
           duration: workout.duration,
+          intensity: workout.intensity,
+          caloriesBurned: workout.caloriesBurned,
           timestamp: workout.timestamp
         },
         createdAt: serverTimestamp(),
@@ -151,17 +151,27 @@ export const WorkoutProvider = ({ children }) => {
         comments: []
       };
 
-      await addDoc(collection(db, 'social'), socialData);
-      
-      // Update local state
-      setWorkouts(prev =>
-        prev.map(w =>
-          w.id === workoutId ? { ...w, isPublic: true } : w
-        )
-      );
+      await addDoc(socialPostRef, postData);
+
+      // Update workout to mark it as shared
+      await updateDoc(doc(db, 'workouts', workoutId), {
+        isShared: true,
+        lastSharedAt: serverTimestamp()
+      });
+
+      // Show success notification
+      setNotification({
+        message: 'Workout shared successfully!',
+        type: 'success'
+      });
+
     } catch (error) {
       console.error('Error sharing workout:', error);
-      setError('Failed to share workout');
+      setError(error.message);
+      setNotification({
+        message: 'Failed to share workout. Please try again.',
+        type: 'error'
+      });
       throw error;
     }
   };
@@ -275,6 +285,7 @@ export const WorkoutProvider = ({ children }) => {
     workouts,
     loading,
     error,
+    notification,
     addWorkout,
     updateWorkout,
     deleteWorkout,

@@ -1,28 +1,19 @@
 import React from 'react';
-import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-
-// Context Providers
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { WorkoutProvider } from './contexts/WorkoutContext';
-import { ExerciseProvider } from './contexts/ExerciseContext';
-import { WorkoutProgramProvider } from './contexts/WorkoutProgramContext';
 import { NotificationProvider } from './contexts/NotificationContext';
-
-// Theme
-import theme from './theme';
-
-// Components
+import { WorkoutProgramProvider } from './contexts/WorkoutProgramContext';
+import { ExerciseProvider } from './contexts/ExerciseContext';
+import { SnackbarProvider } from './contexts/SnackbarContext';
 import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
-
-// Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ResetPassword from './pages/ResetPassword';
 import Articles from './pages/Articles';
 import Diagnosis from './pages/Diagnosis';
 import Counseling from './pages/Counseling';
@@ -33,7 +24,7 @@ import Chat from './pages/Chat';
 import Social from './pages/Social';
 import Scheduling from './pages/Scheduling';
 import Pricing from './pages/Pricing';
-import BookingLanding from './pages/BookingLanding';
+import theme from './theme/theme';
 
 const router = createBrowserRouter([
   {
@@ -43,52 +34,31 @@ const router = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
+      { path: 'reset-password', element: <ResetPassword /> },
       { path: 'articles', element: <Articles /> },
-      {
-        path: 'diagnosis',
-        element: <ProtectedRoute><Diagnosis /></ProtectedRoute>
-      },
-      {
-        path: 'counseling',
-        element: <ProtectedRoute><Counseling /></ProtectedRoute>
-      },
-      {
-        path: 'training',
-        element: <ProtectedRoute><Training /></ProtectedRoute>
-      },
-      {
-        path: 'progress',
-        element: <ProtectedRoute><Progress /></ProtectedRoute>
-      },
-      {
-        path: 'profile',
-        element: <ProtectedRoute><UserProfile /></ProtectedRoute>
-      },
-      {
-        path: 'chat',
-        element: <ProtectedRoute><Chat /></ProtectedRoute>
-      },
-      {
-        path: 'social',
-        element: <ProtectedRoute><Social /></ProtectedRoute>
-      },
-      {
-        path: 'schedule',
-        element: <ProtectedRoute><Scheduling /></ProtectedRoute>
-      },
-      {
-        path: 'pricing',
-        element: <Pricing />
-      }
+      { path: 'diagnosis', element: <ProtectedRoute><Diagnosis /></ProtectedRoute> },
+      { path: 'counseling', element: <ProtectedRoute><Counseling /></ProtectedRoute> },
+      { path: 'training', element: <ProtectedRoute><Training /></ProtectedRoute> },
+      { path: 'progress', element: <ProtectedRoute><Progress /></ProtectedRoute> },
+      { path: 'profile', element: <ProtectedRoute><UserProfile /></ProtectedRoute> },
+      { path: 'chat', element: <ProtectedRoute><Chat /></ProtectedRoute> },
+      { path: 'social', element: <ProtectedRoute><Social /></ProtectedRoute> },
+      { path: 'schedule', element: <ProtectedRoute><Scheduling /></ProtectedRoute> },
+      { path: 'pricing', element: <Pricing /> }
     ]
   }
-]);
+], {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true
+  }
+});
 
 function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <LocalizationProvider dateAdapter={AdapterDateFns}>
+      <SnackbarProvider>
         <AuthProvider>
           <NotificationProvider>
             <WorkoutProvider>
@@ -100,7 +70,7 @@ function App() {
             </WorkoutProvider>
           </NotificationProvider>
         </AuthProvider>
-      </LocalizationProvider>
+      </SnackbarProvider>
     </ThemeProvider>
   );
 }

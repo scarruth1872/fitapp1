@@ -22,7 +22,7 @@ const Home = () => {
           transition={{ duration: 0.8 }}
         >
           <Typography variant="h2" component="h1" gutterBottom>
-            Welcome to FitApp
+            Welcome to Inspired-Fitness
           </Typography>
           <Typography variant="h5" color="textSecondary" paragraph>
             Your personal fitness journey starts here

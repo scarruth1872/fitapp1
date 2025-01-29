@@ -3,271 +3,356 @@ import {
   Box,
   TextField,
   IconButton,
-  Paper,
   Typography,
   Avatar,
-  CircularProgress,
-  useTheme
+  Paper,
+  Chip,
+  Stack,
+  Button,
+  useTheme,
+  CircularProgress
 } from '@mui/material';
 import {
   Send as SendIcon,
-  FitnessCenter,
-  Assistant
+  Psychology as AIIcon,
+  SportsGymnastics as WorkoutIcon,
+  Restaurant as NutritionIcon,
+  Insights as InsightsIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
-import PersonalTrainerAgent from '../../agents/PersonalTrainerAgent';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWorkout } from '../../contexts/WorkoutContext';
+import { collection, addDoc, serverTimestamp, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { useSnackbar } from '../../contexts/SnackbarContext';
 
-const TrainerChat = () => {
-  const { currentUser } = useAuth();
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef(null);
-  const [trainerAgent, setTrainerAgent] = useState(null);
+const TrainerChat = ({ suggestions, trainerStatus }) => {
   const theme = useTheme();
-  const chatContainerRef = useRef(null);
+  const { currentUser } = useAuth();
+  const { workouts } = useWorkout();
+  const { showSnackbar } = useSnackbar();
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+  const [quickResponses] = useState([
+    { id: 'workout', text: "Create a workout plan", icon: <WorkoutIcon /> },
+    { id: 'nutrition', text: "Nutrition advice", icon: <NutritionIcon /> },
+    { id: 'progress', text: "View my progress", icon: <InsightsIcon /> }
+  ]);
 
   useEffect(() => {
-    if (currentUser?.uid) {
-      const agent = new PersonalTrainerAgent({
-        uid: currentUser.uid,
-        fitnessLevel: currentUser.fitnessLevel || 'beginner',
-        preferences: currentUser.preferences || {}
-      });
-      setTrainerAgent(agent);
+    loadChatHistory();
+    scrollToBottom();
+  }, []);
 
-      const messagesRef = collection(db, 'users', currentUser.uid, 'trainerMessages');
-      const q = query(messagesRef, orderBy('timestamp', 'asc'));
-
-      const unsubscribe = onSnapshot(q, (snapshot) => {
-        const newMessages = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setMessages(newMessages);
-        scrollToBottom();
-      });
-
-      return () => unsubscribe();
+  useEffect(() => {
+    if (suggestions?.length > 0) {
+      const suggestionMessages = suggestions.map(suggestion => ({
+        id: `suggestion-${Date.now()}-${Math.random()}`,
+        type: 'trainer',
+        content: suggestion.message,
+        action: suggestion.action,
+        timestamp: new Date()
+      }));
+      setMessages(prev => [...prev, ...suggestionMessages]);
     }
-  }, [currentUser]);
+  }, [suggestions]);
+
+  const loadChatHistory = async () => {
+    try {
+      const chatRef = collection(db, 'chatMessages');
+      const q = query(
+        chatRef,
+        where('userId', '==', currentUser.uid),
+        orderBy('timestamp', 'desc'),
+        limit(50)
+      );
+      const querySnapshot = await getDocs(q);
+      const chatHistory = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate()
+        }))
+        .reverse();
+      setMessages(chatHistory);
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      showSnackbar('Error loading chat history. Please try again.', 'error');
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  const scrollToBottom = () => {
-    if (chatContainerRef.current) {
-      const scrollHeight = chatContainerRef.current.scrollHeight;
-      const height = chatContainerRef.current.clientHeight;
-      const maxScrollTop = scrollHeight - height;
-      chatContainerRef.current.scrollTop = maxScrollTop > 0 ? maxScrollTop : 0;
+  const handleSend = async () => {
+    if (!input.trim()) return;
+
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      type: 'user',
+      content: input,
+      userId: currentUser.uid,
+      timestamp: new Date()
+    };
+
+    try {
+      // Add user message to Firestore
+      await addDoc(collection(db, 'chatMessages'), {
+        ...userMessage,
+        timestamp: serverTimestamp()
+      });
+
+      setMessages(prev => [...prev, userMessage]);
+      setInput('');
+      setIsTyping(true);
+
+      // Simulate AI trainer response
+      setTimeout(async () => {
+        const generateTrainerResponse = (userInput) => {
+          const lowercaseInput = userInput.toLowerCase();
+          
+          // Common workout-related keywords
+          if (lowercaseInput.includes('workout') || lowercaseInput.includes('exercise')) {
+            return "I'd be happy to help you with your workout! Would you like me to create a personalized workout plan based on your goals and fitness level?";
+          }
+          
+          // Nutrition-related keywords
+          if (lowercaseInput.includes('diet') || lowercaseInput.includes('nutrition') || lowercaseInput.includes('food')) {
+            return "Let's talk about your nutrition goals! I can help you create a balanced meal plan that supports your fitness journey. What specific nutrition advice are you looking for?";
+          }
+          
+          // Progress-related keywords
+          if (lowercaseInput.includes('progress') || lowercaseInput.includes('track') || lowercaseInput.includes('improve')) {
+            return "I'll help you track your fitness progress! Would you like to see your workout statistics or set new fitness goals?";
+          }
+          
+          // Goals-related keywords
+          if (lowercaseInput.includes('goal') || lowercaseInput.includes('target')) {
+            return "Setting clear fitness goals is important! Let's discuss your objectives and create a plan to achieve them. What are your main fitness goals?";
+          }
+          
+          // Default response with follow-up question
+          return `I understand you're interested in ${userInput.toLowerCase()}. Could you tell me more about your specific needs or goals? This will help me provide better guidance.`;
+        };
+
+        const trainerResponse = {
+          id: `trainer-${Date.now()}`,
+          type: 'trainer',
+          content: generateTrainerResponse(input),
+          isTrainer: true,
+          timestamp: new Date()
+        };
+
+        try {
+          // Add trainer response to Firestore
+          await addDoc(collection(db, 'chatMessages'), {
+            ...trainerResponse,
+            userId: currentUser.uid,
+            timestamp: serverTimestamp()
+          });
+
+          setMessages(prev => [...prev, trainerResponse]);
+        } catch (error) {
+          console.error('Error saving trainer response:', error);
+          showSnackbar('Error saving trainer response. Please try again.', 'error');
+        }
+
+        setIsTyping(false);
+      }, 1500);
+    } catch (error) {
+      console.error('Error saving message:', error);
+      showSnackbar('Error sending message. Please try again.', 'error');
     }
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !trainerAgent) return;
-
-    const userMessage = newMessage.trim();
-    setNewMessage('');
-    setLoading(true);
-
-    try {
-      const messagesRef = collection(db, 'users', currentUser.uid, 'trainerMessages');
-      await addDoc(messagesRef, {
-        content: userMessage,
-        sender: 'user',
-        timestamp: serverTimestamp()
-      });
-
-      const response = await trainerAgent.processMessage(userMessage);
-
-      await addDoc(messagesRef, {
-        content: response,
-        sender: 'trainer',
-        timestamp: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('Error sending message:', error);
-      const messagesRef = collection(db, 'users', currentUser.uid, 'trainerMessages');
-      await addDoc(messagesRef, {
-        content: 'Sorry, I encountered an error. Please try again.',
-        sender: 'trainer',
-        timestamp: serverTimestamp()
-      });
-    } finally {
-      setLoading(false);
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSend();
     }
   };
 
   return (
-    <Box 
-      sx={{ 
-        height: '100%', 
-        display: 'flex', 
-        flexDirection: 'column',
-        backgroundColor: theme.palette.background.default,
-        border: `1px solid ${theme.palette.primary.main}`,
-        borderRadius: 1,
-        overflow: 'hidden'
-      }}
-    >
-      <Paper 
-        elevation={0}
-        ref={chatContainerRef}
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+      {/* Messages Container */}
+      <Box 
         sx={{ 
-          flex: 1,
-          overflow: 'auto',
-          p: 2,
-          backgroundColor: 'transparent',
-          '&::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '&::-webkit-scrollbar-track': {
-            backgroundColor: theme.palette.background.default,
-          },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: theme.palette.primary.main,
-            borderRadius: '4px',
-          },
+          flexGrow: 1, 
+          overflow: 'auto', 
+          mb: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2
         }}
       >
-        <AnimatePresence>
+        {/* Welcome Message */}
+        {messages.length === 0 && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              bgcolor: 'background.paper',
+              border: '1px solid',
+              borderColor: 'primary.main',
+              borderRadius: 2,
+              textAlign: 'center'
+            }}
+          >
+            <AIIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+            <Typography variant="h6" color="primary.main" gutterBottom>
+              Welcome to Your Personal AI Trainer!
+            </Typography>
+            <Typography variant="body1" color="text.secondary" paragraph>
+              I'm here to help you achieve your fitness goals. You can ask me about workouts, nutrition, progress tracking, or anything fitness-related!
+            </Typography>
+            <Stack direction="row" spacing={1} justifyContent="center">
+              {quickResponses.map((response) => (
+                <Chip
+                  key={response.id}
+                  icon={response.icon}
+                  label={response.text}
+                  onClick={() => {
+                    setInput(response.text);
+                    handleSend();
+                  }}
+                  sx={{
+                    bgcolor: 'background.paper',
+                    border: '1px solid',
+                    borderColor: 'primary.main',
+                    '&:hover': {
+                      bgcolor: 'primary.dark',
+                      color: 'primary.contrastText'
+                    }
+                  }}
+                />
+              ))}
+            </Stack>
+          </Paper>
+        )}
+        
+        <AnimatePresence initial={false}>
           {messages.map((message) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
             >
               <Box
                 sx={{
                   display: 'flex',
-                  justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+                  justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
                   mb: 2
                 }}
               >
-                {message.sender === 'trainer' && (
-                  <Avatar 
-                    sx={{ 
-                      mr: 1, 
-                      bgcolor: theme.palette.primary.main,
-                      color: theme.palette.primary.contrastText
+                {message.type === 'trainer' && (
+                  <Avatar
+                    sx={{
+                      bgcolor: 'primary.main',
+                      mr: 1,
+                      width: 32,
+                      height: 32
                     }}
                   >
-                    <Assistant />
+                    <AIIcon />
                   </Avatar>
                 )}
                 <Paper
-                  elevation={1}
+                  elevation={0}
                   sx={{
                     p: 2,
                     maxWidth: '70%',
-                    backgroundColor: message.sender === 'user' 
-                      ? theme.palette.primary.main 
-                      : theme.palette.background.paper,
-                    color: message.sender === 'user'
-                      ? theme.palette.primary.contrastText
-                      : theme.palette.text.primary,
-                    border: `1px solid ${theme.palette.primary.main}`,
-                    borderRadius: 2,
-                    fontFamily: theme.typography.fontFamily
+                    bgcolor: message.type === 'user' ? 'primary.dark' : 'background.paper',
+                    border: 1,
+                    borderColor: 'primary.main',
+                    borderRadius: 2
                   }}
                 >
-                  <Typography 
-                    variant="body1"
-                    sx={{ 
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'inherit'
-                    }}
-                  >
+                  <Typography variant="body1" color="text.primary">
                     {message.content}
                   </Typography>
+                  {message.action && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      sx={{ mt: 1 }}
+                      onClick={() => console.log('Action:', message.action)}
+                    >
+                      {message.action}
+                    </Button>
+                  )}
                 </Paper>
-                {message.sender === 'user' && (
-                  <Avatar 
-                    sx={{ 
-                      ml: 1, 
-                      bgcolor: theme.palette.secondary.main,
-                      color: theme.palette.secondary.contrastText
-                    }}
-                  >
-                    {currentUser.email[0].toUpperCase()}
-                  </Avatar>
-                )}
               </Box>
             </motion.div>
           ))}
         </AnimatePresence>
-      </Paper>
+        <div ref={messagesEndRef} />
+      </Box>
 
-      <Paper
-        component="form"
-        onSubmit={handleSendMessage}
-        sx={{
-          p: 2,
-          backgroundColor: theme.palette.background.paper,
-          borderTop: `1px solid ${theme.palette.primary.main}`
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder="Ask your trainer anything..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            disabled={loading}
+      {/* Quick Responses */}
+      <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+        {quickResponses.map((response) => (
+          <Chip
+            key={response.id}
+            icon={response.icon}
+            label={response.text}
+            onClick={() => setInput(response.text)}
             sx={{
-              mr: 1,
-              '& .MuiOutlinedInput-root': {
-                color: theme.palette.text.primary,
-                '& fieldset': {
-                  borderColor: theme.palette.primary.main,
-                },
-                '&:hover fieldset': {
-                  borderColor: theme.palette.primary.light,
-                },
-                '&.Mui-focused fieldset': {
-                  borderColor: theme.palette.primary.main,
-                },
-              },
-              '& .MuiInputBase-input': {
-                fontFamily: theme.typography.fontFamily,
+              bgcolor: 'background.paper',
+              border: 1,
+              borderColor: 'primary.main',
+              '&:hover': {
+                bgcolor: 'primary.dark',
               }
             }}
           />
-          <IconButton 
-            type="submit" 
-            color="primary" 
-            disabled={loading || !newMessage.trim()}
-            sx={{
-              bgcolor: theme.palette.primary.main,
-              color: theme.palette.primary.contrastText,
-              '&:hover': {
-                bgcolor: theme.palette.primary.dark,
-              },
-              '&.Mui-disabled': {
-                bgcolor: theme.palette.action.disabledBackground,
+        ))}
+      </Stack>
+
+      {/* Input Area */}
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Ask your AI trainer anything..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={handleKeyPress}
+          sx={{
+            mr: 1,
+            '& .MuiOutlinedInput-root': {
+              bgcolor: 'background.paper',
+              '&.Mui-focused fieldset': {
+                borderColor: 'primary.main',
               }
-            }}
-          >
-            {loading ? (
-              <CircularProgress 
-                size={24} 
-                sx={{ color: theme.palette.primary.contrastText }} 
-              />
-            ) : (
-              <SendIcon />
-            )}
-          </IconButton>
-        </Box>
-      </Paper>
+            }
+          }}
+        />
+        <IconButton
+          onClick={handleSend}
+          disabled={!input.trim() || isTyping}
+          sx={{
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            '&:hover': {
+              bgcolor: 'primary.dark',
+            },
+            '&.Mui-disabled': {
+              bgcolor: 'action.disabledBackground',
+            }
+          }}
+        >
+          {isTyping ? <CircularProgress size={24} /> : <SendIcon />}
+        </IconButton>
+      </Box>
     </Box>
   );
 };

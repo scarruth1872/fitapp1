@@ -8,230 +8,192 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
-  Tabs,
-  Tab
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
 } from '@mui/material';
-import { motion } from 'framer-motion';
+import {
+  FitnessCenter,
+  Timeline,
+  EmojiEvents,
+  Psychology as AIIcon,
+  Person as TrainerIcon,
+  Info as AboutIcon,
+  LocalOffer as ServicesIcon,
+  SupportAgent as CounselingIcon
+} from '@mui/icons-material';
+import { motion, AnimatePresence } from 'framer-motion';
 import PersonalTrainer from '../components/trainer/PersonalTrainer';
 import WorkoutAnalytics from '../components/trainer/analytics/WorkoutAnalytics';
 import ChallengeHub from '../components/trainer/social/ChallengeHub';
 import AchievementSystem from '../components/trainer/gamification/AchievementSystem';
-import ExerciseVisualizer from '../components/trainer/ExerciseVisualizer';
-import WorkoutProgramBuilder from '../components/trainer/WorkoutProgramBuilder';
+import TrainerProfile from '../components/trainer/TrainerProfile';
+import ServicesOverview from '../components/trainer/services/ServicesOverview';
+import CounselingServices from '../components/trainer/services/CounselingServices';
 import WorkoutProgramManager from '../components/trainer/WorkoutProgramManager';
 import { WorkoutProgramProvider } from '../contexts/WorkoutProgramContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useWorkout } from '../contexts/WorkoutContext';
 import { db } from '../config/firebase';
-import { doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 
 const TrainingPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { currentUser } = useAuth();
+  const { workouts } = useWorkout();
   const [loading, setLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState(null);
-  const [workoutStats, setWorkoutStats] = useState(null);
-  const [activeTab, setActiveTab] = useState(0);
+  const [userStats, setUserStats] = useState(null);
+  const [activeSection, setActiveSection] = useState('about');
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (!currentUser) return;
-
+    const loadUserStats = async () => {
       try {
-        setLoading(true);
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        const profile = userDoc.exists() ? userDoc.data() : null;
-        setUserProfile(profile);
-
-        const workoutsRef = collection(db, 'users', currentUser.uid, 'workouts');
-        const workoutsSnap = await getDocs(workoutsRef);
-        
-        let stats = {
-          totalWorkouts: 0,
-          totalDuration: 0,
-          totalCalories: 0,
-          workouts: [],
-          lastWorkout: null
-        };
-
-        workoutsSnap.forEach(doc => {
-          const workout = doc.data();
-          stats.totalWorkouts++;
-          stats.totalDuration += workout.duration || 0;
-          stats.totalCalories += workout.caloriesBurned || 0;
-          stats.workouts.push(workout);
-          if (!stats.lastWorkout || workout.date > stats.lastWorkout.date) {
-            stats.lastWorkout = workout;
-          }
-        });
-
-        setWorkoutStats(stats);
+        if (!currentUser) return;
+        const userStatsRef = doc(db, 'userStats', currentUser.uid);
+        const statsDoc = await getDoc(userStatsRef);
+        if (statsDoc.exists()) {
+          setUserStats(statsDoc.data());
+        }
+        setLoading(false);
       } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
+        console.error('Error loading user stats:', error);
         setLoading(false);
       }
     };
 
-    fetchUserData();
+    loadUserStats();
   }, [currentUser]);
-
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
 
   if (loading) {
     return (
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center',
-          minHeight: '100vh'
-        }}
-      >
-        <CircularProgress />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress sx={{ color: 'primary.main' }} />
       </Box>
     );
   }
 
   return (
-    <WorkoutProgramProvider>
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1,
-          height: '100vh',
-          overflow: 'hidden',
-          position: 'relative',
-          backgroundColor: theme.palette.background.default
-        }}
-      >
-        <Container 
-          maxWidth={false} 
-          sx={{ 
-            height: '100%',
-            py: 2,
-            px: { xs: 1, sm: 2, md: 3 }
-          }}
-        >
-          <Grid 
-            container 
-            spacing={2} 
-            sx={{ 
-              height: '100%',
-              overflow: 'hidden'
-            }}
-          >
-            <Grid 
-              item 
-              xs={12} 
-              md={8} 
-              sx={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <Box sx={{ width: '100%', mt: 3 }}>
-                <Tabs
-                  value={activeTab}
-                  onChange={handleTabChange}
-                  centered
-                >
-                  <Tab label="Exercise Library" />
-                  <Tab label="Workout Programs" />
-                </Tabs>
-              </Box>
-
-              <Box sx={{ mt: 3 }}>
-                {activeTab === 0 && <ExerciseVisualizer />}
-                {activeTab === 1 && <WorkoutProgramManager />}
-              </Box>
+    <Box 
+      sx={{ 
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+        pt: 2,
+        pb: 4
+      }}
+    >
+      <Container maxWidth="xl">
+        <WorkoutProgramProvider>
+          <Grid container spacing={2}>
+            {/* Sidebar Navigation - Reordered to be first on mobile */}
+            <Grid item xs={12} md={3} order={{ xs: 1, md: 1 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'primary.main',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  position: 'sticky',
+                  top: 16
+                }}
+              >
+                <List component="nav" sx={{ p: 0 }}>
+                  {[
+                    { value: 'trainer', label: 'AI TRAINER', icon: <AIIcon />, subtitle: 'GET PERSONALIZED GUIDANCE' },
+                    { value: 'programs', label: 'PROGRAMS', icon: <FitnessCenter />, subtitle: 'VIEW WORKOUT PROGRAMS' },
+                    { value: 'analytics', label: 'ANALYTICS', icon: <Timeline />, subtitle: 'TRACK YOUR PROGRESS' },
+                    { value: 'challenges', label: 'CHALLENGES', icon: <EmojiEvents />, subtitle: 'JOIN FITNESS CHALLENGES' },
+                    { value: 'about', label: 'ABOUT US', icon: <AboutIcon />, subtitle: 'LEARN ABOUT INSPIRED-FITNESS' },
+                    { value: 'services', label: 'OUR SERVICES', icon: <ServicesIcon />, subtitle: 'EXPLORE OUR OFFERINGS' },
+                    { value: 'counseling', label: 'COUNSELING', icon: <CounselingIcon />, subtitle: 'MENTAL WELLNESS SUPPORT' },
+                  ].map((item) => (
+                    <ListItem
+                      key={item.value}
+                      button
+                      selected={activeSection === item.value}
+                      onClick={() => setActiveSection(item.value)}
+                      sx={{
+                        borderBottom: '1px solid',
+                        borderColor: 'primary.main',
+                        '&:last-child': { borderBottom: 0 },
+                        '&.Mui-selected': {
+                          bgcolor: 'primary.dark',
+                          '&:hover': {
+                            bgcolor: 'primary.dark',
+                          }
+                        },
+                        py: 1.5
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: activeSection === item.value ? 'primary.contrastText' : 'primary.main' }}>
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={
+                          <Typography 
+                            variant="subtitle2" 
+                            color={activeSection === item.value ? 'primary.contrastText' : 'primary.main'} 
+                            sx={{ letterSpacing: 1, fontWeight: 600 }}
+                          >
+                            {item.label}
+                          </Typography>
+                        }
+                        secondary={
+                          <Typography 
+                            variant="caption" 
+                            color={activeSection === item.value ? 'rgba(255,255,255,0.7)' : 'text.secondary'} 
+                            sx={{ fontSize: '0.7rem' }}
+                          >
+                            {item.subtitle}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              </Paper>
             </Grid>
-            
-            <Grid 
-              item 
-              xs={12} 
-              md={4} 
-              sx={{ 
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 2,
-                overflow: 'hidden'
-              }}
-            >
-              <Paper 
-                sx={{ 
-                  p: 2,
-                  height: '33%',
-                  overflow: 'auto',
-                  backgroundColor: theme.palette.background.paper,
-                  border: `1px solid ${theme.palette.primary.main}`,
-                  '&::-webkit-scrollbar': {
-                    width: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    backgroundColor: theme.palette.background.default,
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: theme.palette.primary.main,
-                    borderRadius: '4px',
-                  },
+
+            {/* Main Content Area */}
+            <Grid item xs={12} md={9} order={{ xs: 2, md: 2 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  minHeight: { xs: 'auto', md: 'calc(100vh - 32px)' },
+                  bgcolor: 'background.paper',
+                  border: '1px solid',
+                  borderColor: 'primary.main',
+                  borderRadius: 2,
+                  overflow: 'hidden'
                 }}
               >
-                <WorkoutAnalytics stats={workoutStats} />
-              </Paper>
-              
-              <Paper 
-                sx={{ 
-                  p: 2,
-                  height: '33%',
-                  overflow: 'auto',
-                  backgroundColor: theme.palette.background.paper,
-                  border: `1px solid ${theme.palette.primary.main}`,
-                  '&::-webkit-scrollbar': {
-                    width: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    backgroundColor: theme.palette.background.default,
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: theme.palette.primary.main,
-                    borderRadius: '4px',
-                  },
-                }}
-              >
-                <ChallengeHub />
-              </Paper>
-              
-              <Paper 
-                sx={{ 
-                  p: 2,
-                  height: '33%',
-                  overflow: 'auto',
-                  backgroundColor: theme.palette.background.paper,
-                  border: `1px solid ${theme.palette.primary.main}`,
-                  '&::-webkit-scrollbar': {
-                    width: '8px',
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    backgroundColor: theme.palette.background.default,
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: theme.palette.primary.main,
-                    borderRadius: '4px',
-                  },
-                }}
-              >
-                <AchievementSystem userProfile={userProfile} />
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeSection}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    style={{ height: '100%' }}
+                  >
+                    {activeSection === 'trainer' && <PersonalTrainer />}
+                    {activeSection === 'analytics' && <WorkoutAnalytics />}
+                    {activeSection === 'programs' && <WorkoutProgramManager />}
+                    {activeSection === 'challenges' && <ChallengeHub />}
+                    {activeSection === 'about' && <TrainerProfile />}
+                    {activeSection === 'services' && <ServicesOverview />}
+                    {activeSection === 'counseling' && <CounselingServices />}
+                  </motion.div>
+                </AnimatePresence>
               </Paper>
             </Grid>
           </Grid>
-        </Container>
-      </Box>
-    </WorkoutProgramProvider>
+        </WorkoutProgramProvider>
+      </Container>
+    </Box>
   );
 };
 

@@ -3,45 +3,100 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Helper functions
-    function isSignedIn() {
+    function isAuthenticated() {
       return request.auth != null;
     }
     
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Workouts collection
-    match /workouts/{workoutId} {
-      allow read: if isSignedIn() && 
-        (isOwner(resource.data.userId) || resource.data.isPublic == true);
-      allow create: if isSignedIn() && 
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && 
-        isOwner(resource.data.userId);
-    }
-
-    // Social collection
-    match /social/{postId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && 
-        request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() && (
-        isOwner(resource.data.userId) || 
-        // Allow users to like/unlike posts
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) ||
-        // Allow users to comment on posts
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comments']))
-      );
-      allow delete: if isSignedIn() && 
-        isOwner(resource.data.userId);
-    }
-
-    // User profiles collection
+    // User Profiles
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && 
-        isOwner(userId);
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // Workouts
+    match /workouts/{workoutId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || 
+        resource.data.isShared == true
+      );
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // User Stats
+    match /userStats/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // User Achievements
+    match /userAchievements/{docId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Achievements
+    match /achievements/{achievementId} {
+      allow read: if isAuthenticated();
+    }
+
+    // Chat Messages
+    match /chatMessages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        resource.data.isTrainer == true
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid ||
+        request.resource.data.isTrainer == true
+      );
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Workout Programs
+    match /workoutPrograms/{programId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Exercise Library
+    match /exercises/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only admins can modify the exercise library
+    }
+
+    // Social Posts
+    match /social_posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // Challenges
+    match /challenges/{challengeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (
+        resource.data.createdBy == request.auth.uid ||
+        request.auth.uid in resource.data.participants
+      );
     }
   }
 }

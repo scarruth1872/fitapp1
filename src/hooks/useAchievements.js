@@ -37,7 +37,7 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.WORKOUT_COUNT,
     name: 'Workout Beginner',
     description: 'Complete your first 5 workouts',
-    icon: <WorkoutIcon />,
+    icon: 'workout',
     targetProgress: 5,
     reward: 'Unlock basic workout templates',
     tier: 1
@@ -47,7 +47,7 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.WORKOUT_COUNT,
     name: 'Workout Warrior',
     description: 'Complete 25 workouts',
-    icon: <WorkoutIcon />,
+    icon: 'workout',
     targetProgress: 25,
     reward: 'Unlock advanced workout templates',
     tier: 2
@@ -57,7 +57,7 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.WORKOUT_COUNT,
     name: 'Workout Master',
     description: 'Complete 100 workouts',
-    icon: <WorkoutIcon />,
+    icon: 'workout',
     targetProgress: 100,
     reward: 'Unlock expert workout templates and custom badge',
     tier: 3
@@ -67,7 +67,7 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.WORKOUT_STREAK,
     name: 'Streak Starter',
     description: 'Maintain a 7-day workout streak',
-    icon: <FireIcon />,
+    icon: 'fire',
     targetProgress: 7,
     reward: 'Special streak badge',
     tier: 1
@@ -77,7 +77,7 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.SOCIAL_SHARES,
     name: 'Social Butterfly',
     description: 'Share 10 workouts with the community',
-    icon: <SocialIcon />,
+    icon: 'social',
     targetProgress: 10,
     reward: 'Unlock social features and custom sharing templates',
     tier: 1
@@ -87,7 +87,7 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.PROGRAM_COMPLETIONS,
     name: 'Program Master',
     description: 'Complete 3 full workout programs',
-    icon: <TrophyIcon />,
+    icon: 'trophy',
     targetProgress: 3,
     reward: 'Ability to create and share custom programs',
     tier: 2
@@ -97,7 +97,7 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.COMMUNITY_ENGAGEMENT,
     name: 'Community Leader',
     description: 'Get 50 likes on your shared workouts',
-    icon: <StarIcon />,
+    icon: 'star',
     targetProgress: 50,
     reward: 'Verified community leader badge',
     tier: 2
@@ -107,12 +107,31 @@ const DEFAULT_ACHIEVEMENTS = [
     type: ACHIEVEMENT_TYPES.WORKOUT_STREAK,
     name: 'Consistency King',
     description: 'Maintain a 30-day workout streak',
-    icon: <StreakIcon />,
+    icon: 'streak',
     targetProgress: 30,
     reward: 'Exclusive workout programs and custom profile banner',
     tier: 3
   }
 ];
+
+const getIconComponent = (iconName) => {
+  switch (iconName) {
+    case 'workout':
+      return <WorkoutIcon />;
+    case 'fire':
+      return <FireIcon />;
+    case 'social':
+      return <SocialIcon />;
+    case 'streak':
+      return <StreakIcon />;
+    case 'star':
+      return <StarIcon />;
+    case 'trophy':
+      return <TrophyIcon />;
+    default:
+      return <StarIcon />;
+  }
+};
 
 export const useAchievements = () => {
   const { currentUser } = useAuth();
@@ -121,19 +140,29 @@ export const useAchievements = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const showAchievementNotification = (achievement) => {
+    createNotification({
+      title: '🏆 Achievement Unlocked!',
+      message: `Congratulations! You've earned the "${achievement.name}" achievement!`,
+      type: 'success'
+    });
+  };
+
   const initializeUserAchievements = async () => {
     try {
-      const userAchievementsRef = doc(db, 'userAchievements', currentUser.uid);
+      const userAchievementsRef = doc(collection(db, 'userAchievements'));
       const achievementsData = DEFAULT_ACHIEVEMENTS.map(achievement => ({
         ...achievement,
         currentProgress: 0,
         completed: false,
-        completedAt: null
+        completedAt: null,
+        iconComponent: getIconComponent(achievement.icon)
       }));
 
       await setDoc(userAchievementsRef, {
+        userId: currentUser.uid,
         achievements: achievementsData,
-        lastUpdated: serverTimestamp()
+        updatedAt: serverTimestamp()
       });
 
       return achievementsData;
@@ -148,14 +177,21 @@ export const useAchievements = () => {
 
     try {
       setLoading(true);
-      const userAchievementsRef = doc(db, 'userAchievements', currentUser.uid);
-      const userAchievementsDoc = await getDocs(userAchievementsRef);
+      setError(null);
+
+      const userAchievementsRef = collection(db, 'userAchievements');
+      const q = query(userAchievementsRef, where('userId', '==', currentUser.uid));
+      const querySnapshot = await getDocs(q);
 
       let userAchievements;
-      if (!userAchievementsDoc.exists()) {
+      if (querySnapshot.empty) {
         userAchievements = await initializeUserAchievements();
       } else {
-        userAchievements = userAchievementsDoc.data().achievements;
+        const data = querySnapshot.docs[0].data();
+        userAchievements = data.achievements.map(achievement => ({
+          ...achievement,
+          iconComponent: getIconComponent(achievement.icon)
+        }));
       }
 
       setAchievements(userAchievements);
@@ -167,15 +203,26 @@ export const useAchievements = () => {
     }
   };
 
-  const updateAchievementProgress = async (type, increment = 1) => {
+  const updateAchievementProgress = async (type, incrementValue = 1) => {
     if (!currentUser) return;
 
     try {
-      const userAchievementsRef = doc(db, 'userAchievements', currentUser.uid);
+      const userAchievementsRef = collection(db, 'userAchievements');
+      const q = query(userAchievementsRef, where('userId', '==', currentUser.uid));
+      const querySnapshot = await getDocs(q);
+      
+      const docRef = querySnapshot.empty 
+        ? doc(userAchievementsRef) 
+        : doc(db, 'userAchievements', querySnapshot.docs[0].id);
+
       const updatedAchievements = achievements.map(achievement => {
         if (achievement.type === type && !achievement.completed) {
-          const newProgress = achievement.currentProgress + increment;
+          const newProgress = achievement.currentProgress + incrementValue;
           const completed = newProgress >= achievement.targetProgress;
+
+          if (completed && !achievement.completed) {
+            showAchievementNotification(achievement);
+          }
 
           return {
             ...achievement,
@@ -187,84 +234,15 @@ export const useAchievements = () => {
         return achievement;
       });
 
-      await updateDoc(userAchievementsRef, {
+      await updateDoc(docRef, {
         achievements: updatedAchievements,
-        lastUpdated: serverTimestamp()
+        updatedAt: serverTimestamp()
       });
 
       setAchievements(updatedAchievements);
-
-      // Check for newly completed achievements and create notifications
-      const newlyCompleted = updatedAchievements.filter(
-        (achievement, index) =>
-          achievement.completed && !achievements[index].completed
-      );
-
-      // Create notifications for newly completed achievements
-      await Promise.all(
-        newlyCompleted.map(async (achievement) => {
-          await createNotification(currentUser.uid, {
-            type: 'achievement',
-            achievement: achievement,
-            title: 'Achievement Unlocked!',
-            message: `You've unlocked the ${achievement.name} achievement!`,
-            icon: 'trophy'
-          });
-        })
-      );
-
-      return newlyCompleted;
-    } catch (err) {
-      console.error('Error updating achievement progress:', err);
-      throw err;
-    }
-  };
-
-  const checkWorkoutStreak = async () => {
-    if (!currentUser) return;
-
-    try {
-      const workoutsRef = collection(db, 'workouts');
-      const userWorkoutsQuery = query(
-        workoutsRef,
-        where('userId', '==', currentUser.uid),
-        where('completed', '==', true)
-      );
-
-      const workouts = await getDocs(userWorkoutsQuery);
-      const workoutDates = workouts.docs
-        .map(doc => doc.data().completedAt.toDate())
-        .sort((a, b) => b - a);
-
-      let currentStreak = 0;
-      let lastDate = new Date();
-
-      for (const date of workoutDates) {
-        const dayDifference = Math.floor(
-          (lastDate - date) / (1000 * 60 * 60 * 24)
-        );
-
-        if (dayDifference <= 1) {
-          currentStreak++;
-          lastDate = date;
-        } else {
-          break;
-        }
-      }
-
-      // Update streak-based achievements
-      const streakAchievements = achievements.filter(
-        a => a.type === ACHIEVEMENT_TYPES.WORKOUT_STREAK
-      );
-
-      for (const achievement of streakAchievements) {
-        if (currentStreak >= achievement.targetProgress && !achievement.completed) {
-          await updateAchievementProgress(ACHIEVEMENT_TYPES.WORKOUT_STREAK, currentStreak);
-        }
-      }
-    } catch (err) {
-      console.error('Error checking workout streak:', err);
-      throw err;
+    } catch (error) {
+      console.error('Error updating achievement progress:', error);
+      setError(error.message);
     }
   };
 
@@ -278,8 +256,8 @@ export const useAchievements = () => {
     achievements,
     loading,
     error,
-    updateAchievementProgress,
-    checkWorkoutStreak,
-    refreshAchievements: fetchAchievements
+    updateAchievementProgress
   };
 };
+
+export default useAchievements;

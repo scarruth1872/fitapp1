@@ -115,6 +115,7 @@ export default function WorkoutList() {
     if (!selectedWorkout) return;
 
     try {
+      setShowShareDialog(true);
       await shareWorkout(selectedWorkout.id);
       setShowShareDialog(false);
       setSelectedWorkout(null);
@@ -155,27 +156,14 @@ export default function WorkoutList() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" my={4}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
       </Box>
     );
   }
 
-  if (workouts.length === 0) {
-    return (
-      <Typography 
-        variant="h6" 
-        textAlign="center" 
-        color="primary.main"
-        sx={{ my: 4 }}
-      >
-        No workouts logged yet. Start by adding one!
-      </Typography>
-    );
-  }
-
   return (
-    <Box sx={{ mt: 4 }}>
+    <Box>
       <WorkoutFilters
         filters={filters}
         onFilterChange={handleFilterChange}
@@ -183,130 +171,87 @@ export default function WorkoutList() {
         onClearFilters={handleClearFilters}
       />
 
-      <Typography variant="h5" sx={{ mb: 3, color: 'primary.main' }}>
-        Workout History
-      </Typography>
-
-      {filteredWorkouts.map((workout, index) => (
-        <MotionPaper
-          key={workout.id}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.1 }}
-          sx={{
-            mb: 2,
-            backgroundColor: 'rgba(0, 26, 0, 0.9)',
-            border: '1px solid #00ff00',
-            borderRadius: 2,
-            overflow: 'hidden',
-          }}
-        >
-          <Accordion 
-            sx={{ 
-              backgroundColor: 'transparent',
-              '&:before': { display: 'none' },
-            }}
+      {filteredWorkouts.length === 0 ? (
+        <Typography variant="body1" textAlign="center" mt={4}>
+          No workouts found
+        </Typography>
+      ) : (
+        filteredWorkouts.map((workout) => (
+          <MotionPaper
+            key={workout.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            sx={{ mb: 2 }}
           >
-            <AccordionSummary
-              expandIcon={<ExpandMoreIcon sx={{ color: 'primary.main' }} />}
-            >
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ width: '100%', pr: 2 }}
-              >
-                <Typography color="primary.main">
-                  {formatDate(workout.date)}
-                </Typography>
-                <Chip 
-                  label={`${workout.exercises.length} exercises`}
-                  size="small"
-                  sx={{ 
-                    backgroundColor: 'rgba(0, 255, 0, 0.1)',
-                    color: 'primary.main',
-                  }}
-                />
-              </Stack>
-            </AccordionSummary>
-
-            <AccordionDetails>
-              {workout.exercises.map((exercise, exIndex) => (
-                <Box key={exIndex} sx={{ mb: 3 }}>
-                  <Typography 
-                    variant="subtitle1" 
-                    sx={{ 
-                      color: 'primary.main',
-                      fontWeight: 'bold',
-                      mb: 1,
-                    }}
-                  >
-                    {exercise.type}
-                  </Typography>
-
-                  <Stack spacing={1}>
-                    {exercise.sets.map((set, setIndex) => (
-                      <Typography 
-                        key={setIndex}
-                        variant="body2"
-                        color="primary.main"
-                      >
-                        Set {setIndex + 1}: {set.reps} reps @ {set.weight} lbs
-                      </Typography>
-                    ))}
-                  </Stack>
-
-                  {exercise.notes && (
-                    <Typography 
-                      variant="body2" 
-                      color="primary.light"
-                      sx={{ mt: 1, fontStyle: 'italic' }}
-                    >
-                      Notes: {exercise.notes}
+            <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Stack direction="row" alignItems="center" spacing={2} width="100%">
+                  <Box flex={1}>
+                    <Typography variant="h6">{workout.name}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {formatDate(workout.timestamp)}
                     </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={1}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedWorkout(workout);
+                        setShowShareDialog(true);
+                      }}
+                    >
+                      <ShareIcon />
+                    </IconButton>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedWorkout(workout);
+                        setShowDeleteDialog(true);
+                      }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="subtitle2">Type</Typography>
+                    <Chip label={workout.type} size="small" />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2">Intensity</Typography>
+                    <Chip label={workout.intensity} size="small" />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2">Duration</Typography>
+                    <Typography>{workout.duration} minutes</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2">Calories Burned</Typography>
+                    <Typography>{workout.caloriesBurned} kcal</Typography>
+                  </Box>
+                  {workout.notes && (
+                    <Box>
+                      <Typography variant="subtitle2">Notes</Typography>
+                      <Typography>{workout.notes}</Typography>
+                    </Box>
                   )}
-                </Box>
-              ))}
+                </Stack>
+              </AccordionDetails>
+            </Accordion>
+          </MotionPaper>
+        ))
+      )}
 
-              <Stack 
-                direction="row" 
-                justifyContent="flex-end"
-                sx={{ mt: 2 }}
-              >
-                <Button
-                  startIcon={<ShareIcon />}
-                  onClick={() => {
-                    setSelectedWorkout(workout);
-                    setShowShareDialog(true);
-                  }}
-                >
-                  Share
-                </Button>
-                <IconButton
-                  onClick={() => {
-                    setSelectedWorkout(workout);
-                    setShowDeleteDialog(true);
-                  }}
-                  sx={{ color: 'error.main' }}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Stack>
-            </AccordionDetails>
-          </Accordion>
-        </MotionPaper>
-      ))}
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={showDeleteDialog}
-        onClose={() => setShowDeleteDialog(false)}
-      >
+      <Dialog open={showDeleteDialog} onClose={() => setShowDeleteDialog(false)}>
         <DialogTitle>Delete Workout</DialogTitle>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete this workout? This action cannot be undone.
-          </Typography>
+          <Typography>Are you sure you want to delete this workout?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
@@ -314,23 +259,14 @@ export default function WorkoutList() {
         </DialogActions>
       </Dialog>
 
-      {/* Share Confirmation Dialog */}
-      <Dialog
-        open={showShareDialog}
-        onClose={() => setShowShareDialog(false)}
-      >
+      <Dialog open={showShareDialog} onClose={() => setShowShareDialog(false)}>
         <DialogTitle>Share Workout</DialogTitle>
         <DialogContent>
-          <Typography paragraph>
-            Share this workout with your followers? The workout will be visible on your profile and in your followers' feeds.
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Note: Once shared, the workout will be public and visible to other users.
-          </Typography>
+          <Typography>Are you sure you want to share this workout to your social feed?</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowShareDialog(false)}>Cancel</Button>
-          <Button onClick={handleShare} color="primary" variant="contained">Share</Button>
+          <Button onClick={handleShare} color="primary">Share</Button>
         </DialogActions>
       </Dialog>
     </Box>

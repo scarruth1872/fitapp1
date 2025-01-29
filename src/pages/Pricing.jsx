@@ -35,7 +35,7 @@ const plans = {
     },
     {
       title: 'Pro',
-      price: 79,
+      price: 499,
       features: [
         'Everything in Basic',
         'Personal Training Sessions',
@@ -47,7 +47,7 @@ const plans = {
     },
     {
       title: 'Elite',
-      price: 149,
+      price: 1200,
       features: [
         'Everything in Pro',
         'Weekly Counseling Sessions',
@@ -62,7 +62,7 @@ const plans = {
   annual: [
     {
       title: 'Basic',
-      price: 24,
+      price: 19,
       features: [
         'Access to Articles',
         'Basic Health Assessment',
@@ -73,7 +73,7 @@ const plans = {
     },
     {
       title: 'Pro',
-      price: 65,
+      price: 399,
       features: [
         'Everything in Basic',
         'Personal Training Sessions',
@@ -85,7 +85,7 @@ const plans = {
     },
     {
       title: 'Elite',
-      price: 125,
+      price: 599,
       features: [
         'Everything in Pro',
         'Weekly Counseling Sessions',
