@@ -4,7 +4,6 @@ import {
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Typography,
   TextField,
   Select,
@@ -24,12 +23,22 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Divider,
+  Paper,
+  Stack,
+  Tooltip
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import SpeedIcon from '@mui/icons-material/Speed';
-import CloseIcon from '@mui/icons-material/Close';
+import {
+  Search as SearchIcon,
+  FitnessCenter as FitnessCenterIcon,
+  AccessTime as AccessTimeIcon,
+  Speed as SpeedIcon,
+  Close as CloseIcon,
+  Warning as WarningIcon,
+  Check as CheckIcon,
+  Info as InfoIcon,
+  Star as StarIcon
+} from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useExercise } from '../contexts/ExerciseContext';
 
@@ -69,6 +78,21 @@ const ExerciseLibrary = () => {
     visible: { opacity: 1, y: 0 }
   };
 
+  const renderChipList = (items, color = 'default') => {
+    return (
+      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', my: 1 }}>
+        {items.map((item, index) => (
+          <Chip
+            key={index}
+            label={item}
+            size="small"
+            color={color}
+          />
+        ))}
+      </Box>
+    );
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       {/* Search and Filter Section */}
@@ -77,7 +101,7 @@ const ExerciseLibrary = () => {
           <TextField
             fullWidth
             variant="outlined"
-            placeholder="Search exercises..."
+            placeholder="Search exercises, muscles, equipment..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
@@ -99,7 +123,7 @@ const ExerciseLibrary = () => {
             >
               {categories?.map((category) => (
                 <MenuItem key={category} value={category}>
-                  {category.charAt(0).toUpperCase() + category.slice(1)}
+                  {category}
                 </MenuItem>
               ))}
             </Select>
@@ -146,21 +170,36 @@ const ExerciseLibrary = () => {
                       <Typography variant="h6" gutterBottom>
                         {exercise.name}
                       </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                      <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                        {exercise.equipment?.map((item, index) => (
+                          <Chip
+                            key={index}
+                            icon={<FitnessCenterIcon />}
+                            label={item}
+                            size="small"
+                            color="primary"
+                          />
+                        ))}
                         <Chip
-                          icon={<FitnessCenterIcon />}
-                          label={exercise.equipment}
-                          size="small"
-                          color="primary"
-                        />
-                        <Chip
-                          label={exercise.category}
+                          label={exercise.type}
                           size="small"
                           color="secondary"
                         />
+                        <Tooltip title="Difficulty Level">
+                          <Chip
+                            icon={<StarIcon />}
+                            label={exercise.difficulty}
+                            size="small"
+                            color={
+                              exercise.difficulty === 'beginner' ? 'success' :
+                              exercise.difficulty === 'intermediate' ? 'warning' :
+                              'error'
+                            }
+                          />
+                        </Tooltip>
                       </Box>
                       <Typography variant="body2" color="text.secondary">
-                        {exercise.description}
+                        Primary muscles: {exercise.primaryMuscles?.join(', ')}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -175,46 +214,164 @@ const ExerciseLibrary = () => {
       <Dialog
         open={Boolean(selectedExercise)}
         onClose={handleCloseDialog}
-        maxWidth="sm"
+        maxWidth="md"
         fullWidth
       >
         {selectedExercise && (
           <>
             <DialogTitle>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                {selectedExercise.name}
+                <Typography variant="h5">{selectedExercise.name}</Typography>
                 <IconButton onClick={handleCloseDialog}>
                   <CloseIcon />
                 </IconButton>
               </Box>
             </DialogTitle>
             <DialogContent>
-              <Typography variant="h6" gutterBottom>
-                Instructions
-              </Typography>
-              <List>
-                {selectedExercise.instructions.map((instruction, index) => (
-                  <ListItem key={index}>
-                    <ListItemIcon>
-                      {index + 1}.
-                    </ListItemIcon>
-                    <ListItemText primary={instruction} />
-                  </ListItem>
-                ))}
-              </List>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Equipment: {selectedExercise.equipment}
-                </Typography>
-                <Typography variant="subtitle1">
-                  Category: {selectedExercise.category}
-                </Typography>
-              </Box>
+              <Stack spacing={3}>
+                {/* Basic Info */}
+                <Box>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Overview
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Paper elevation={1} sx={{ p: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom>
+                          <FitnessCenterIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          Equipment
+                        </Typography>
+                        {renderChipList(selectedExercise.equipment)}
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Paper elevation={1} sx={{ p: 2 }}>
+                        <Typography variant="subtitle1" gutterBottom>
+                          <SpeedIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                          Difficulty
+                        </Typography>
+                        <Chip
+                          label={selectedExercise.difficulty}
+                          color={
+                            selectedExercise.difficulty === 'beginner' ? 'success' :
+                            selectedExercise.difficulty === 'intermediate' ? 'warning' :
+                            'error'
+                          }
+                        />
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                {/* Muscles */}
+                <Box>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Muscles Worked
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Primary Muscles
+                      </Typography>
+                      {renderChipList(selectedExercise.primaryMuscles, 'primary')}
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Secondary Muscles
+                      </Typography>
+                      {renderChipList(selectedExercise.secondaryMuscles, 'secondary')}
+                    </Grid>
+                  </Grid>
+                </Box>
+
+                <Divider />
+
+                {/* Instructions */}
+                <Box>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Instructions
+                  </Typography>
+                  <List>
+                    {selectedExercise.preparation?.map((step, index) => (
+                      <ListItem key={index}>
+                        <ListItemIcon>
+                          <CheckIcon color="success" />
+                        </ListItemIcon>
+                        <ListItemText primary={step} />
+                      </ListItem>
+                    ))}
+                    {selectedExercise.execution?.map((step, index) => (
+                      <ListItem key={index}>
+                        <ListItemIcon>
+                          {index + 1}.
+                        </ListItemIcon>
+                        <ListItemText primary={step} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+
+                {/* Tips and Common Errors */}
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      Tips
+                    </Typography>
+                    <List>
+                      {selectedExercise.tips?.map((tip, index) => (
+                        <ListItem key={index}>
+                          <ListItemIcon>
+                            <InfoIcon color="info" />
+                          </ListItemIcon>
+                          <ListItemText primary={tip} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="h6" gutterBottom color="error">
+                      Common Errors
+                    </Typography>
+                    <List>
+                      {selectedExercise.commonErrors?.map((error, index) => (
+                        <ListItem key={index}>
+                          <ListItemIcon>
+                            <WarningIcon color="error" />
+                          </ListItemIcon>
+                          <ListItemText primary={error} />
+                        </ListItem>
+                      ))}
+                    </List>
+                  </Grid>
+                </Grid>
+
+                {/* Benefits and Variations */}
+                <Box>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Benefits
+                  </Typography>
+                  <List>
+                    {selectedExercise.benefits?.map((benefit, index) => (
+                      <ListItem key={index}>
+                        <ListItemIcon>
+                          <CheckIcon color="success" />
+                        </ListItemIcon>
+                        <ListItemText primary={benefit} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Box>
+
+                <Box>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Variations
+                  </Typography>
+                  {renderChipList(selectedExercise.variations, 'info')}
+                </Box>
+              </Stack>
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleCloseDialog} color="primary">
-                Close
-              </Button>
+              <Button onClick={handleCloseDialog}>Close</Button>
             </DialogActions>
           </>
         )}
