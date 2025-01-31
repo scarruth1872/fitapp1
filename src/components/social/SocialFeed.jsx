@@ -15,6 +15,9 @@ import {
   ListItemText,
   Divider,
   Paper,
+  CircularProgress,
+  Alert,
+  Snackbar,
 } from '@mui/material';
 import { 
   Favorite, 
@@ -42,72 +45,152 @@ import {
 const SocialFeed = () => {
   const { currentUser } = useAuth();
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [activeCommentPost, setActiveCommentPost] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'social_posts'),
-      orderBy('createdAt', 'desc'),
-      limit(20)
-    );
+    if (!currentUser) {
+      setLoading(false);
+      return;
+    }
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const updatedPosts = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setPosts(updatedPosts);
-    });
+    try {
+      const q = query(
+        collection(db, 'social_posts'),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
 
-    return () => unsubscribe();
-  }, []);
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const updatedPosts = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setPosts(updatedPosts);
+        setLoading(false);
+      }, (error) => {
+        console.error('Error fetching posts:', error);
+        setError('Failed to load posts. Please try again later.');
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
+    } catch (error) {
+      console.error('Error setting up posts listener:', error);
+      setError('Failed to connect to the social feed. Please try again later.');
+      setLoading(false);
+    }
+  }, [currentUser]);
 
   const handleLike = async (postId) => {
-    const postRef = doc(db, 'social_posts', postId);
-    const post = posts.find(p => p.id === postId);
-    const hasLiked = post.likes?.includes(currentUser.uid);
+    try {
+      const postRef = doc(db, 'social_posts', postId);
+      const post = posts.find(p => p.id === postId);
+      const hasLiked = post.likes?.includes(currentUser.uid);
 
-    await updateDoc(postRef, {
-      likes: hasLiked 
-        ? arrayRemove(currentUser.uid)
-        : arrayUnion(currentUser.uid)
-    });
+      await updateDoc(postRef, {
+        likes: hasLiked 
+          ? arrayRemove(currentUser.uid)
+          : arrayUnion(currentUser.uid)
+      });
+
+      setSnackbar({
+        open: true,
+        message: hasLiked ? 'Like removed' : 'Post liked!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating like:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to update like. Please try again.',
+        severity: 'error'
+      });
+    }
   };
 
   const handleComment = async (postId) => {
     if (!commentText.trim()) return;
 
-    const postRef = doc(db, 'social_posts', postId);
-    const comment = {
-      userId: currentUser.uid,
-      userName: currentUser.displayName,
-      userAvatar: currentUser.photoURL,
-      text: commentText,
-      createdAt: serverTimestamp(),
-    };
+    try {
+      const postRef = doc(db, 'social_posts', postId);
+      const comment = {
+        userId: currentUser.uid,
+        userName: currentUser.displayName,
+        userAvatar: currentUser.photoURL,
+        text: commentText,
+        createdAt: serverTimestamp(),
+      };
 
-    await updateDoc(postRef, {
-      comments: arrayUnion(comment)
-    });
+      await updateDoc(postRef, {
+        comments: arrayUnion(comment)
+      });
 
-    setCommentText('');
-    setActiveCommentPost(null);
+      setCommentText('');
+      setActiveCommentPost(null);
+      setSnackbar({
+        open: true,
+        message: 'Comment added successfully!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to add comment. Please try again.',
+        severity: 'error'
+      });
+    }
   };
 
   const handleShare = async (post) => {
-    if (navigator.share) {
-      try {
+    try {
+      if (navigator.share) {
         await navigator.share({
-          title: 'Check out this workout!',
-          text: `${post.userName}'s workout: ${post.description}`,
+          title: `${post.userName}'s Workout`,
+          text: post.description,
           url: window.location.href,
         });
-      } catch (error) {
-        console.error('Error sharing:', error);
+        setSnackbar({
+          open: true,
+          message: 'Post shared successfully!',
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: 'Sharing is not supported on this device',
+          severity: 'info'
+        });
       }
+    } catch (error) {
+      console.error('Error sharing post:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to share post. Please try again.',
+        severity: 'error'
+      });
     }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert severity="error" sx={{ m: 2 }}>
+        {error}
+      </Alert>
+    );
+  }
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: 2 }}>
@@ -211,6 +294,18 @@ const SocialFeed = () => {
           )}
         </Card>
       ))}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

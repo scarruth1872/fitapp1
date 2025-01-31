@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { RouterProvider, createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { WorkoutProvider } from './contexts/WorkoutContext';
 import { NotificationProvider } from './contexts/NotificationContext';
@@ -23,15 +23,27 @@ import UserProfile from './pages/UserProfile';
 import Chat from './pages/Chat';
 import Social from './pages/Social';
 import Scheduling from './pages/Scheduling';
+import AgentDashboard from './components/trainer/AgentDashboard';
 import Pricing from './pages/Pricing';
+import AchievementLeaderboard from './components/leaderboard/AchievementLeaderboard';
+import AchievementAnalytics from './components/analytics/AchievementAnalytics';
 import theme from './theme/theme';
+import AIQuery from './pages/AIQuery';
+import { CollaborationProvider } from './contexts/CollaborationContext';
 
-const router = createBrowserRouter([
+const appRouter = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
     children: [
-      { index: true, element: <Home /> },
+      { 
+        path: '/agent-dashboard',
+        element: <ProtectedRoute><AgentDashboard /></ProtectedRoute> 
+      },
+      { 
+        index: true, 
+        element: <Home />
+      },
       { path: 'login', element: <Login /> },
       { path: 'signup', element: <Signup /> },
       { path: 'reset-password', element: <ResetPassword /> },
@@ -40,39 +52,45 @@ const router = createBrowserRouter([
       { path: 'counseling', element: <ProtectedRoute><Counseling /></ProtectedRoute> },
       { path: 'training', element: <ProtectedRoute><Training /></ProtectedRoute> },
       { path: 'progress', element: <ProtectedRoute><Progress /></ProtectedRoute> },
+      { path: 'leaderboard', element: <ProtectedRoute><AchievementLeaderboard /></ProtectedRoute> },
+      { path: 'analytics', element: <ProtectedRoute><AchievementAnalytics /></ProtectedRoute> },
       { path: 'profile', element: <ProtectedRoute><UserProfile /></ProtectedRoute> },
       { path: 'chat', element: <ProtectedRoute><Chat /></ProtectedRoute> },
       { path: 'social', element: <ProtectedRoute><Social /></ProtectedRoute> },
       { path: 'schedule', element: <ProtectedRoute><Scheduling /></ProtectedRoute> },
-      { path: 'pricing', element: <Pricing /> }
+      { path: 'pricing', element: <Pricing /> },
+      { path: 'ai-query', element: <ProtectedRoute><AIQuery /></ProtectedRoute> }
     ]
   }
 ], {
   future: {
     v7_startTransition: true,
-    v7_relativeSplatPath: true
+    v7_relativeSplatPath: true,
+    v7_normalizeFormMethod: true
   }
 });
 
-function App() {
+const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <SnackbarProvider>
+      <CollaborationProvider>
         <AuthProvider>
-          <NotificationProvider>
-            <WorkoutProvider>
-              <WorkoutProgramProvider>
-                <ExerciseProvider>
-                  <RouterProvider router={router} />
-                </ExerciseProvider>
-              </WorkoutProgramProvider>
-            </WorkoutProvider>
-          </NotificationProvider>
+          <SnackbarProvider>
+            <NotificationProvider>
+              <WorkoutProvider>
+                <WorkoutProgramProvider>
+                  <ExerciseProvider>
+                    <RouterProvider router={appRouter} />
+                  </ExerciseProvider>
+                </WorkoutProgramProvider>
+              </WorkoutProvider>
+            </NotificationProvider>
+          </SnackbarProvider>
         </AuthProvider>
-      </SnackbarProvider>
+      </CollaborationProvider>
     </ThemeProvider>
   );
-}
+};
 
 export default App;

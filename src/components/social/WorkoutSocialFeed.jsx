@@ -68,24 +68,15 @@ const WorkoutSocialFeed = () => {
   const fetchPosts = async () => {
     try {
       const postsQuery = query(
-        collection(db, 'workoutPosts'),
+        collection(db, 'social_posts'),
         orderBy('createdAt', 'desc'),
         limit(20)
       );
       
       const snapshot = await getDocs(postsQuery);
-      const postsData = await Promise.all(snapshot.docs.map(async doc => {
-        const post = { id: doc.id, ...doc.data() };
-        
-        // Fetch user data
-        const userDoc = await getDocs(doc(db, 'users', post.userId));
-        post.user = userDoc.data();
-        
-        // Fetch program data
-        const programDoc = await getDocs(doc(db, 'workoutPrograms', post.programId));
-        post.program = programDoc.data();
-        
-        return post;
+      const postsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
       }));
       
       setPosts(postsData);
@@ -98,7 +89,7 @@ const WorkoutSocialFeed = () => {
 
   const handleLike = async (postId) => {
     try {
-      const postRef = doc(db, 'workoutPosts', postId);
+      const postRef = doc(db, 'social_posts', postId);
       const hasLiked = posts.find(p => p.id === postId).likes.includes(currentUser.uid);
       
       await updateDoc(postRef, {
@@ -136,7 +127,7 @@ const WorkoutSocialFeed = () => {
       };
       
       await addDoc(collection(db, 'workoutComments'), commentData);
-      await updateDoc(doc(db, 'workoutPosts', commentDialog.postId), {
+      await updateDoc(doc(db, 'social_posts', commentDialog.postId), {
         commentCount: increment(1)
       });
       
@@ -154,7 +145,6 @@ const WorkoutSocialFeed = () => {
       const shareData = {
         userId: currentUser.uid,
         originalPostId: post.id,
-        programId: post.programId,
         content: 'Shared this workout program',
         createdAt: new Date().toISOString(),
         likes: [],
@@ -163,8 +153,8 @@ const WorkoutSocialFeed = () => {
         shareCount: 0
       };
       
-      await addDoc(collection(db, 'workoutPosts'), shareData);
-      await updateDoc(doc(db, 'workoutPosts', post.id), {
+      await addDoc(collection(db, 'social_posts'), shareData);
+      await updateDoc(doc(db, 'social_posts', post.id), {
         shareCount: increment(1)
       });
       
@@ -177,7 +167,7 @@ const WorkoutSocialFeed = () => {
 
   const handleDeletePost = async () => {
     try {
-      await deleteDoc(doc(db, 'workoutPosts', selectedPost.id));
+      await deleteDoc(doc(db, 'social_posts', selectedPost.id));
       setPosts(prev => prev.filter(post => post.id !== selectedPost.id));
       setMenuAnchor(null);
       setSelectedPost(null);

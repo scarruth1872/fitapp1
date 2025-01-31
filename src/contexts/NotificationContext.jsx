@@ -26,7 +26,8 @@ export function NotificationProvider({ children }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [achievementNotification, setAchievementNotification] = useState(null);
-  const { currentUser } = useAuth();
+  const auth = useAuth();
+  const currentUser = auth?.currentUser;
 
   useEffect(() => {
     if (!currentUser) {
@@ -59,11 +60,13 @@ export function NotificationProvider({ children }) {
     return () => unsubscribe();
   }, [currentUser]);
 
-  const createNotification = async (userId, data) => {
+  const createNotification = async (data) => {
     try {
+      if (!currentUser) return;
+      
       const notificationsRef = collection(db, 'notifications');
       const newNotification = {
-        userId,
+        userId: currentUser.uid,
         ...data,
         read: false,
         createdAt: Timestamp.now()

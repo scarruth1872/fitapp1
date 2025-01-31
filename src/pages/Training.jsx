@@ -21,7 +21,8 @@ import {
   Person as TrainerIcon,
   Info as AboutIcon,
   LocalOffer as ServicesIcon,
-  SupportAgent as CounselingIcon
+  SupportAgent as CounselingIcon,
+  MenuBook as LibraryIcon
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import PersonalTrainer from '../components/trainer/PersonalTrainer';
@@ -32,6 +33,7 @@ import TrainerProfile from '../components/trainer/TrainerProfile';
 import ServicesOverview from '../components/trainer/services/ServicesOverview';
 import CounselingServices from '../components/trainer/services/CounselingServices';
 import WorkoutProgramManager from '../components/trainer/WorkoutProgramManager';
+import ExerciseLibrary from '../components/ExerciseLibrary';
 import { WorkoutProgramProvider } from '../contexts/WorkoutProgramContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useWorkout } from '../contexts/WorkoutContext';
@@ -104,6 +106,7 @@ const TrainingPage = () => {
                   {[
                     { value: 'trainer', label: 'AI TRAINER', icon: <AIIcon />, subtitle: 'GET PERSONALIZED GUIDANCE' },
                     { value: 'programs', label: 'PROGRAMS', icon: <FitnessCenter />, subtitle: 'VIEW WORKOUT PROGRAMS' },
+                    { value: 'library', label: 'EXERCISES', icon: <LibraryIcon />, subtitle: 'BROWSE EXERCISE LIBRARY' },
                     { value: 'analytics', label: 'ANALYTICS', icon: <Timeline />, subtitle: 'TRACK YOUR PROGRESS' },
                     { value: 'challenges', label: 'CHALLENGES', icon: <EmojiEvents />, subtitle: 'JOIN FITNESS CHALLENGES' },
                     { value: 'about', label: 'ABOUT US', icon: <AboutIcon />, subtitle: 'LEARN ABOUT INSPIRED-FITNESS' },
@@ -182,6 +185,7 @@ const TrainingPage = () => {
                     {activeSection === 'trainer' && <PersonalTrainer />}
                     {activeSection === 'analytics' && <WorkoutAnalytics />}
                     {activeSection === 'programs' && <WorkoutProgramManager />}
+                    {activeSection === 'library' && <ExerciseLibrary />}
                     {activeSection === 'challenges' && <ChallengeHub />}
                     {activeSection === 'about' && <TrainerProfile />}
                     {activeSection === 'services' && <ServicesOverview />}

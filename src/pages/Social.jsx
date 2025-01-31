@@ -200,63 +200,84 @@ const Social = () => {
         {activeView === 'feed' && <SocialFeed />}
         {activeView === 'workouts' && <WorkoutSocialFeed />}
         {activeView === 'friends' && <FriendSystem />}
-        {activeView === 'saved' && (
-          <Typography>Saved Workouts Coming Soon</Typography>
-        )}
-        {activeView === 'settings' && (
-          <Typography>Settings Coming Soon</Typography>
-        )}
-
-        <Fab
-          color="primary"
-          sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-          }}
-          onClick={() => setShowShare(true)}
-        >
-          <AddIcon />
-        </Fab>
       </Box>
 
+      {/* Notifications Menu */}
       <Menu
         anchorEl={notificationAnchor}
         open={Boolean(notificationAnchor)}
         onClose={() => setNotificationAnchor(null)}
+        PaperProps={{
+          sx: { width: 320, maxHeight: 400 }
+        }}
       >
-        {notifications.map((notification) => (
-          <MenuItem
-            key={notification.id}
-            onClick={() => {
-              markAsRead(notification.id);
-              setNotificationAnchor(null);
-            }}
-          >
-            {notification.message}
+        {notifications.length === 0 ? (
+          <MenuItem>
+            <Typography variant="body2" color="text.secondary">
+              No new notifications
+            </Typography>
           </MenuItem>
-        ))}
+        ) : (
+          notifications.map((notification) => (
+            <MenuItem
+              key={notification.id}
+              onClick={() => {
+                markAsRead(notification.id);
+                setNotificationAnchor(null);
+              }}
+              sx={{ whiteSpace: 'normal' }}
+            >
+              <Box sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                <Typography variant="subtitle2">{notification.title}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {notification.message}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {notification.createdAt?.toDate().toLocaleString()}
+                </Typography>
+              </Box>
+            </MenuItem>
+          ))
+        )}
       </Menu>
 
+      {/* User Menu */}
       <Menu
         anchorEl={userMenuAnchor}
         open={Boolean(userMenuAnchor)}
         onClose={() => setUserMenuAnchor(null)}
       >
-        <MenuItem onClick={() => navigate('/profile')}>
+        <MenuItem onClick={() => {
+          setUserMenuAnchor(null);
+          navigate('/profile');
+        }}>
           <ListItemIcon>
             <AccountCircleIcon fontSize="small" />
           </ListItemIcon>
-          Profile
+          <Typography>Profile</Typography>
         </MenuItem>
-        <MenuItem onClick={handleLogout}>
+        <MenuItem onClick={() => {
+          setUserMenuAnchor(null);
+          setActiveView('settings');
+        }}>
+          <ListItemIcon>
+            <SettingsIcon fontSize="small" />
+          </ListItemIcon>
+          <Typography>Settings</Typography>
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={() => {
+          setUserMenuAnchor(null);
+          handleLogout();
+        }}>
           <ListItemIcon>
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
-          Logout
+          <Typography>Logout</Typography>
         </MenuItem>
       </Menu>
 
+      {/* Share Workout Dialog */}
       <WorkoutShare
         open={showShare}
         onClose={() => setShowShare(false)}

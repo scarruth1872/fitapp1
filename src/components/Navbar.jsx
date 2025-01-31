@@ -38,6 +38,7 @@ import {
   Chat as ChatIcon,
   Psychology as CounselingIcon,
   MedicalServices as DiagnosisIcon,
+  Dashboard as DashboardIcon,
   Article as ArticleIcon,
   AttachMoney as PricingIcon
 } from '@mui/icons-material';
@@ -50,6 +51,7 @@ const publicPages = [
 ];
 
 const privatePages = [
+  { title: 'Agent Dashboard', path: '/agent-dashboard', icon: <DashboardIcon /> },
   { title: 'Diagnosis', path: '/diagnosis', icon: <DiagnosisIcon /> },
   { title: 'Counseling', path: '/counseling', icon: <CounselingIcon /> },
   { title: 'Training', path: '/training', icon: <FitnessCenterIcon /> },

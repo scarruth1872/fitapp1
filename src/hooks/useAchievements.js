@@ -18,118 +18,134 @@ import {
   updateDoc,
   doc,
   setDoc,
+  getDoc,
   increment,
   serverTimestamp
 } from 'firebase/firestore';
 
-const ACHIEVEMENT_TYPES = {
-  WORKOUT_COUNT: 'workout_count',
-  WORKOUT_STREAK: 'workout_streak',
-  SOCIAL_SHARES: 'social_shares',
-  PROGRAM_COMPLETIONS: 'program_completions',
-  WEIGHT_GOALS: 'weight_goals',
-  COMMUNITY_ENGAGEMENT: 'community_engagement'
-};
-
 const DEFAULT_ACHIEVEMENTS = [
   {
     id: 'workout_beginner',
-    type: ACHIEVEMENT_TYPES.WORKOUT_COUNT,
+    type: 'workout_count',
     name: 'Workout Beginner',
     description: 'Complete your first 5 workouts',
     icon: 'workout',
     targetProgress: 5,
     reward: 'Unlock basic workout templates',
-    tier: 1
+    tier: 1,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   },
   {
     id: 'workout_intermediate',
-    type: ACHIEVEMENT_TYPES.WORKOUT_COUNT,
+    type: 'workout_count',
     name: 'Workout Warrior',
     description: 'Complete 25 workouts',
     icon: 'workout',
     targetProgress: 25,
     reward: 'Unlock advanced workout templates',
-    tier: 2
+    tier: 2,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   },
   {
     id: 'workout_master',
-    type: ACHIEVEMENT_TYPES.WORKOUT_COUNT,
+    type: 'workout_count',
     name: 'Workout Master',
     description: 'Complete 100 workouts',
     icon: 'workout',
     targetProgress: 100,
     reward: 'Unlock expert workout templates and custom badge',
-    tier: 3
+    tier: 3,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   },
   {
     id: 'streak_starter',
-    type: ACHIEVEMENT_TYPES.WORKOUT_STREAK,
+    type: 'workout_streak',
     name: 'Streak Starter',
     description: 'Maintain a 7-day workout streak',
     icon: 'fire',
     targetProgress: 7,
     reward: 'Special streak badge',
-    tier: 1
+    tier: 1,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   },
   {
     id: 'social_butterfly',
-    type: ACHIEVEMENT_TYPES.SOCIAL_SHARES,
+    type: 'social_shares',
     name: 'Social Butterfly',
     description: 'Share 10 workouts with the community',
     icon: 'social',
     targetProgress: 10,
     reward: 'Unlock social features and custom sharing templates',
-    tier: 1
+    tier: 1,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   },
   {
     id: 'program_master',
-    type: ACHIEVEMENT_TYPES.PROGRAM_COMPLETIONS,
+    type: 'program_completions',
     name: 'Program Master',
     description: 'Complete 3 full workout programs',
     icon: 'trophy',
     targetProgress: 3,
     reward: 'Ability to create and share custom programs',
-    tier: 2
+    tier: 2,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   },
   {
     id: 'community_leader',
-    type: ACHIEVEMENT_TYPES.COMMUNITY_ENGAGEMENT,
+    type: 'community_engagement',
     name: 'Community Leader',
     description: 'Get 50 likes on your shared workouts',
     icon: 'star',
     targetProgress: 50,
     reward: 'Verified community leader badge',
-    tier: 2
+    tier: 2,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   },
   {
     id: 'consistency_king',
-    type: ACHIEVEMENT_TYPES.WORKOUT_STREAK,
+    type: 'workout_streak',
     name: 'Consistency King',
     description: 'Maintain a 30-day workout streak',
     icon: 'streak',
     targetProgress: 30,
     reward: 'Exclusive workout programs and custom profile banner',
-    tier: 3
+    tier: 3,
+    currentProgress: 0,
+    completed: false,
+    completedAt: null
   }
 ];
 
 const getIconComponent = (iconName) => {
   switch (iconName) {
     case 'workout':
-      return <WorkoutIcon />;
+      return WorkoutIcon;
     case 'fire':
-      return <FireIcon />;
+      return FireIcon;
     case 'social':
-      return <SocialIcon />;
+      return SocialIcon;
     case 'streak':
-      return <StreakIcon />;
+      return StreakIcon;
     case 'star':
-      return <StarIcon />;
+      return StarIcon;
     case 'trophy':
-      return <TrophyIcon />;
+      return TrophyIcon;
     default:
-      return <StarIcon />;
+      return StarIcon;
   }
 };
 
@@ -140,123 +156,112 @@ export const useAchievements = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const showAchievementNotification = (achievement) => {
-    createNotification({
-      title: '🏆 Achievement Unlocked!',
-      message: `Congratulations! You've earned the "${achievement.name}" achievement!`,
-      type: 'success'
-    });
-  };
-
   const initializeUserAchievements = async () => {
     try {
-      const userAchievementsRef = doc(collection(db, 'userAchievements'));
-      const achievementsData = DEFAULT_ACHIEVEMENTS.map(achievement => ({
+      if (!currentUser) return;
+
+      const userAchievementsRef = doc(db, 'user_achievements', currentUser.uid);
+      const initialAchievements = DEFAULT_ACHIEVEMENTS.map(achievement => ({
         ...achievement,
         currentProgress: 0,
         completed: false,
-        completedAt: null,
-        iconComponent: getIconComponent(achievement.icon)
+        completedAt: null
       }));
 
       await setDoc(userAchievementsRef, {
-        userId: currentUser.uid,
-        achievements: achievementsData,
-        updatedAt: serverTimestamp()
+        achievements: initialAchievements,
+        lastUpdated: serverTimestamp()
       });
 
-      return achievementsData;
+      return initialAchievements;
     } catch (error) {
       console.error('Error initializing achievements:', error);
-      throw error;
+      setError('Failed to initialize achievements');
+      return null;
     }
   };
 
   const fetchAchievements = async () => {
-    if (!currentUser) return;
-
     try {
-      setLoading(true);
-      setError(null);
-
-      const userAchievementsRef = collection(db, 'userAchievements');
-      const q = query(userAchievementsRef, where('userId', '==', currentUser.uid));
-      const querySnapshot = await getDocs(q);
-
-      let userAchievements;
-      if (querySnapshot.empty) {
-        userAchievements = await initializeUserAchievements();
-      } else {
-        const data = querySnapshot.docs[0].data();
-        userAchievements = data.achievements.map(achievement => ({
-          ...achievement,
-          iconComponent: getIconComponent(achievement.icon)
-        }));
+      if (!currentUser) {
+        setAchievements([]);
+        setLoading(false);
+        return;
       }
 
-      setAchievements(userAchievements);
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching achievements:', err);
+      const userAchievementsRef = doc(db, 'user_achievements', currentUser.uid);
+      const docSnap = await getDoc(userAchievementsRef);
+
+      if (!docSnap.exists()) {
+        const initialAchievements = await initializeUserAchievements();
+        if (initialAchievements) {
+          setAchievements(initialAchievements);
+        }
+      } else {
+        const achievementsData = docSnap.data();
+        setAchievements(achievementsData.achievements || []);
+      }
+    } catch (error) {
+      console.error('Error fetching achievements:', error);
+      setError('Failed to load achievements');
     } finally {
       setLoading(false);
     }
   };
 
-  const updateAchievementProgress = async (type, incrementValue = 1) => {
-    if (!currentUser) return;
+  useEffect(() => {
+    fetchAchievements();
+  }, [currentUser]);
 
+  const updateAchievement = async (achievementId, progress) => {
     try {
-      const userAchievementsRef = collection(db, 'userAchievements');
-      const q = query(userAchievementsRef, where('userId', '==', currentUser.uid));
-      const querySnapshot = await getDocs(q);
-      
-      const docRef = querySnapshot.empty 
-        ? doc(userAchievementsRef) 
-        : doc(db, 'userAchievements', querySnapshot.docs[0].id);
+      if (!currentUser) return;
 
-      const updatedAchievements = achievements.map(achievement => {
-        if (achievement.type === type && !achievement.completed) {
-          const newProgress = achievement.currentProgress + incrementValue;
-          const completed = newProgress >= achievement.targetProgress;
+      const achievement = achievements.find(a => a.id === achievementId);
+      if (!achievement) return;
 
-          if (completed && !achievement.completed) {
-            showAchievementNotification(achievement);
-          }
+      const newProgress = Math.min(achievement.targetProgress, progress);
+      const completed = newProgress >= achievement.targetProgress;
 
-          return {
-            ...achievement,
-            currentProgress: newProgress,
-            completed,
-            completedAt: completed ? serverTimestamp() : null
-          };
-        }
-        return achievement;
-      });
+      const updatedAchievement = {
+        ...achievement,
+        currentProgress: newProgress,
+        completed,
+        completedAt: completed ? serverTimestamp() : null
+      };
 
-      await updateDoc(docRef, {
+      const userAchievementsRef = doc(db, 'user_achievements', currentUser.uid);
+      const updatedAchievements = achievements.map(a => 
+        a.id === achievementId ? updatedAchievement : a
+      );
+
+      await updateDoc(userAchievementsRef, {
         achievements: updatedAchievements,
-        updatedAt: serverTimestamp()
+        lastUpdated: serverTimestamp()
       });
+
+      if (completed && !achievement.completed) {
+        createNotification({
+          title: '🏆 Achievement Unlocked!',
+          message: `Congratulations! You've earned the "${achievement.name}" achievement!`,
+          type: 'achievement',
+          achievement: updatedAchievement
+        });
+      }
 
       setAchievements(updatedAchievements);
     } catch (error) {
-      console.error('Error updating achievement progress:', error);
-      setError(error.message);
+      console.error('Error updating achievement:', error);
+      setError('Failed to update achievement');
     }
   };
-
-  useEffect(() => {
-    if (currentUser) {
-      fetchAchievements();
-    }
-  }, [currentUser]);
 
   return {
     achievements,
     loading,
     error,
-    updateAchievementProgress
+    updateAchievement,
+    getIconComponent
   };
 };
 
